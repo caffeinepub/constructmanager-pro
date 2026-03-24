@@ -190,6 +190,7 @@ const navLinks = [
   { label: "Labour", href: "#labour" },
   { label: "Notifications", href: "#notifications" },
   { label: "Features", href: "#features" },
+  { label: "Team", href: "#team" },
 ];
 
 function Navbar() {
@@ -1295,6 +1296,91 @@ function TechStackSection() {
   );
 }
 
+function TeamSection() {
+  const members = [
+    {
+      name: "Mohamed Asif M",
+      role: "Chairman",
+      email: "mohamedasif.ce23@krct.ac.in",
+      image:
+        "/assets/uploads/mohamed_asif_m-019d2137-fc1c-725f-850e-007b024c42ab-2.png",
+    },
+    {
+      name: "Raksha Manikandan M",
+      role: "President",
+      email: "rakshamanikandan.ce23@krct.ac.in",
+      image:
+        "/assets/uploads/raksha_manikandan_m-019d2138-02c2-7368-a7b5-e0fae8e9a060-4.png",
+    },
+    {
+      name: "Kumaran Bala",
+      role: "Vice President",
+      email: "kumaranbala.ce23@krct.ac.in",
+      image:
+        "/assets/uploads/kumaran_bala-019d2137-fc07-76ee-9225-b8a357eb3e63-1.png",
+    },
+    {
+      name: "Aswin M",
+      role: "CEO",
+      email: "aswin.ce23@krct.ac.in",
+      image:
+        "/assets/uploads/aswin_m-019d2137-fd4c-77ab-b14a-5efea6ad48a2-3.png",
+    },
+  ];
+
+  return (
+    <section id="team" style={{ background: "#0B2B45" }} className="py-20 px-4">
+      <div className="max-w-5xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-14"
+        >
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
+            Meet the Team
+          </h2>
+          <p className="text-[#93A4B5] text-lg">
+            The developers behind ConstructManager Pro
+          </p>
+        </motion.div>
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {members.map((member, i) => (
+            <motion.div
+              key={member.email}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.1 }}
+              className="bg-white rounded-xl shadow-lg p-6 flex flex-col items-center text-center"
+              data-ocid={`team.item.${i + 1}`}
+            >
+              <img
+                src={member.image}
+                alt={member.name}
+                className="w-24 h-24 rounded-full object-cover object-top mx-auto border-4 border-[#F28C2A] mb-4"
+              />
+              <h3 className="font-bold text-[#0B2B45] text-base mb-1">
+                {member.name}
+              </h3>
+              <p className="text-[#F28C2A] font-semibold text-sm mb-3">
+                {member.role}
+              </p>
+              <a
+                href={`mailto:${member.email}`}
+                className="text-[#F28C2A] text-xs hover:underline break-all"
+              >
+                {member.email}
+              </a>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Footer() {
   const year = new Date().getFullYear();
   const hostname =
@@ -1362,12 +1448,30 @@ function Footer() {
             <h4 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">
               Contact
             </h4>
-            <p className="text-[#93A4B5] text-sm mb-2">
-              info@constructmanagerpro.com
-            </p>
-            <p className="text-[#93A4B5] text-sm">
-              support@constructmanagerpro.com
-            </p>
+            <a
+              href="mailto:mohamedasif.ce23@krct.ac.in"
+              className="block text-[#93A4B5] text-sm mb-2 hover:text-white transition-colors"
+            >
+              mohamedasif.ce23@krct.ac.in
+            </a>
+            <a
+              href="mailto:kumaranbala.ce23@krct.ac.in"
+              className="block text-[#93A4B5] text-sm mb-2 hover:text-white transition-colors"
+            >
+              kumaranbala.ce23@krct.ac.in
+            </a>
+            <a
+              href="mailto:aswin.ce23@krct.ac.in"
+              className="block text-[#93A4B5] text-sm mb-2 hover:text-white transition-colors"
+            >
+              aswin.ce23@krct.ac.in
+            </a>
+            <a
+              href="mailto:rakshamanikandan.ce23@krct.ac.in"
+              className="block text-[#93A4B5] text-sm hover:text-white transition-colors"
+            >
+              rakshamanikandan.ce23@krct.ac.in
+            </a>
           </div>
         </div>
 
@@ -1407,6 +1511,7 @@ export default function App() {
         <NotificationsSection />
         <FeaturesSection />
         <TechStackSection />
+        <TeamSection />
       </main>
       <Footer />
     </div>
