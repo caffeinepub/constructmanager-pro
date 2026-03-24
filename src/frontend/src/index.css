@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("/assets/fonts/PlusJakartaSans.woff2") format("woff2");
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --radius: 0.75rem;
+
+    /* Navy primary #0B2B45 */
+    --primary: 0.26 0.06 232;
+    --primary-foreground: 1 0 0;
+
+    /* Page background #F4F7FA */
+    --background: 0.97 0.01 232;
+    --foreground: 0.15 0.04 255;
+
+    /* Card white */
+    --card: 1 0 0;
+    --card-foreground: 0.15 0.04 255;
+
+    --popover: 1 0 0;
+    --popover-foreground: 0.15 0.04 255;
+
+    /* Secondary muted */
+    --secondary: 0.94 0.015 232;
+    --secondary-foreground: 0.26 0.06 232;
+
+    --muted: 0.94 0.015 232;
+    --muted-foreground: 0.52 0.02 250;
+
+    /* Accent orange #F28C2A */
+    --accent: 0.73 0.17 65;
+    --accent-foreground: 1 0 0;
+
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 0.985 0 0;
+
+    --border: 0.93 0.02 240;
+    --input: 0.93 0.02 240;
+    --ring: 0.26 0.06 232;
+
+    /* Chart colors */
+    --chart-1: 0.26 0.06 232;
+    --chart-2: 0.73 0.17 65;
+    --chart-3: 0.65 0.12 195;
+    --chart-4: 0.68 0.05 220;
+    --chart-5: 0.577 0.245 27.325;
+
+    --sidebar: 0.26 0.06 232;
+    --sidebar-foreground: 1 0 0;
+    --sidebar-primary: 0.73 0.17 65;
+    --sidebar-primary-foreground: 1 0 0;
+    --sidebar-accent: 0.32 0.07 232;
+    --sidebar-accent-foreground: 1 0 0;
+    --sidebar-border: 0.35 0.05 232;
+    --sidebar-ring: 0.73 0.17 65;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Plus Jakarta Sans", "Inter", sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer utilities {
+  .navy-bg {
+    background-color: oklch(0.26 0.06 232);
+  }
+  .navy-dark-bg {
+    background-color: oklch(0.2 0.06 232);
+  }
+  .orange-accent {
+    color: oklch(0.73 0.17 65);
+  }
+  .teal-accent {
+    color: oklch(0.65 0.12 195);
+  }
+  .hex-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M30 5 L55 20 L55 50 L30 55 L5 50 L5 20 Z' fill='none' stroke='rgba(255,255,255,0.04)' stroke-width='1'/%3E%3C/svg%3E");
+    background-size: 60px 60px;
+  }
+  .card-shadow {
+    box-shadow: 0 10px 30px rgba(16, 24, 40, 0.1);
+  }
+  .glow-shadow {
+    box-shadow: 0 0 40px rgba(242, 140, 42, 0.25);
+  }
+}
