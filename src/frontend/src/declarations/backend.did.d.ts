@@ -10,7 +10,63 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export interface _SERVICE {}
+export interface DashboardSummary {
+  'teamList' : Array<User>,
+  'projects' : Array<Project>,
+  'attendanceSummary' : bigint,
+  'financialOverview' : bigint,
+}
+export interface Material {
+  'name' : string,
+  'quantity' : bigint,
+  'reorderLevel' : bigint,
+}
+export interface Project {
+  'status' : string,
+  'name' : string,
+  'site' : string,
+  'budget' : bigint,
+}
+export interface Task {
+  'status' : string,
+  'title' : string,
+  'assignedTo' : Principal,
+  'description' : string,
+}
+export interface User {
+  'name' : string,
+  'role' : UserRole,
+  'email' : string,
+  'hashedPassword' : string,
+}
+export type UserRole = { 'siteOwner' : null } |
+  { 'materialsEngineer' : null } |
+  { 'chiefEngineer' : null } |
+  { 'siteEngineer' : null };
+export type UserRole__1 = { 'admin' : null } |
+  { 'user' : null } |
+  { 'guest' : null };
+export interface _SERVICE {
+  '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'addMaterial' : ActorMethod<[string, bigint, bigint], bigint>,
+  'addProject' : ActorMethod<[string, string, string, bigint], bigint>,
+  'approveMaterialRequest' : ActorMethod<[string, bigint], undefined>,
+  'assignCallerUserRole' : ActorMethod<[Principal, UserRole__1], undefined>,
+  'assignTask' : ActorMethod<[string, string, Principal, string], bigint>,
+  'createReorderAlert' : ActorMethod<[bigint, bigint], undefined>,
+  'getAllUsers' : ActorMethod<[], Array<[Principal, User]>>,
+  'getCallerUserRole' : ActorMethod<[], UserRole__1>,
+  'getCurrentUserProfile' : ActorMethod<[], User>,
+  'getFullDashboardSummary' : ActorMethod<[], DashboardSummary>,
+  'getInventory' : ActorMethod<[], Array<Material>>,
+  'getProjectOverview' : ActorMethod<[], Array<Project>>,
+  'getSiteEngineerTasks' : ActorMethod<[Principal], Array<Task>>,
+  'isCallerAdmin' : ActorMethod<[], boolean>,
+  'loginUser' : ActorMethod<[string, string], undefined>,
+  'registerUser' : ActorMethod<[string, string, string, UserRole], undefined>,
+  'submitDailyLog' : ActorMethod<[bigint, string], undefined>,
+  'updateStock' : ActorMethod<[bigint, bigint], undefined>,
+}
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];
 export declare const idlFactory: IDL.InterfaceFactory;

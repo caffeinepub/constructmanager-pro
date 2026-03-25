@@ -8,10 +8,166 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
-export const idlService = IDL.Service({});
+export const UserRole__1 = IDL.Variant({
+  'admin' : IDL.Null,
+  'user' : IDL.Null,
+  'guest' : IDL.Null,
+});
+export const UserRole = IDL.Variant({
+  'siteOwner' : IDL.Null,
+  'materialsEngineer' : IDL.Null,
+  'chiefEngineer' : IDL.Null,
+  'siteEngineer' : IDL.Null,
+});
+export const User = IDL.Record({
+  'name' : IDL.Text,
+  'role' : UserRole,
+  'email' : IDL.Text,
+  'hashedPassword' : IDL.Text,
+});
+export const Project = IDL.Record({
+  'status' : IDL.Text,
+  'name' : IDL.Text,
+  'site' : IDL.Text,
+  'budget' : IDL.Nat,
+});
+export const DashboardSummary = IDL.Record({
+  'teamList' : IDL.Vec(User),
+  'projects' : IDL.Vec(Project),
+  'attendanceSummary' : IDL.Nat,
+  'financialOverview' : IDL.Nat,
+});
+export const Material = IDL.Record({
+  'name' : IDL.Text,
+  'quantity' : IDL.Nat,
+  'reorderLevel' : IDL.Nat,
+});
+export const Task = IDL.Record({
+  'status' : IDL.Text,
+  'title' : IDL.Text,
+  'assignedTo' : IDL.Principal,
+  'description' : IDL.Text,
+});
+
+export const idlService = IDL.Service({
+  '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'addMaterial' : IDL.Func([IDL.Text, IDL.Nat, IDL.Nat], [IDL.Nat], []),
+  'addProject' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Nat],
+      [IDL.Nat],
+      [],
+    ),
+  'approveMaterialRequest' : IDL.Func([IDL.Text, IDL.Nat], [], []),
+  'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole__1], [], []),
+  'assignTask' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Principal, IDL.Text],
+      [IDL.Nat],
+      [],
+    ),
+  'createReorderAlert' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
+  'getAllUsers' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Tuple(IDL.Principal, User))],
+      ['query'],
+    ),
+  'getCallerUserRole' : IDL.Func([], [UserRole__1], ['query']),
+  'getCurrentUserProfile' : IDL.Func([], [User], []),
+  'getFullDashboardSummary' : IDL.Func([], [DashboardSummary], ['query']),
+  'getInventory' : IDL.Func([], [IDL.Vec(Material)], ['query']),
+  'getProjectOverview' : IDL.Func([], [IDL.Vec(Project)], ['query']),
+  'getSiteEngineerTasks' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Vec(Task)],
+      ['query'],
+    ),
+  'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'loginUser' : IDL.Func([IDL.Text, IDL.Text], [], []),
+  'registerUser' : IDL.Func([IDL.Text, IDL.Text, IDL.Text, UserRole], [], []),
+  'submitDailyLog' : IDL.Func([IDL.Nat, IDL.Text], [], []),
+  'updateStock' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
+});
 
 export const idlInitArgs = [];
 
-export const idlFactory = ({ IDL }) => { return IDL.Service({}); };
+export const idlFactory = ({ IDL }) => {
+  const UserRole__1 = IDL.Variant({
+    'admin' : IDL.Null,
+    'user' : IDL.Null,
+    'guest' : IDL.Null,
+  });
+  const UserRole = IDL.Variant({
+    'siteOwner' : IDL.Null,
+    'materialsEngineer' : IDL.Null,
+    'chiefEngineer' : IDL.Null,
+    'siteEngineer' : IDL.Null,
+  });
+  const User = IDL.Record({
+    'name' : IDL.Text,
+    'role' : UserRole,
+    'email' : IDL.Text,
+    'hashedPassword' : IDL.Text,
+  });
+  const Project = IDL.Record({
+    'status' : IDL.Text,
+    'name' : IDL.Text,
+    'site' : IDL.Text,
+    'budget' : IDL.Nat,
+  });
+  const DashboardSummary = IDL.Record({
+    'teamList' : IDL.Vec(User),
+    'projects' : IDL.Vec(Project),
+    'attendanceSummary' : IDL.Nat,
+    'financialOverview' : IDL.Nat,
+  });
+  const Material = IDL.Record({
+    'name' : IDL.Text,
+    'quantity' : IDL.Nat,
+    'reorderLevel' : IDL.Nat,
+  });
+  const Task = IDL.Record({
+    'status' : IDL.Text,
+    'title' : IDL.Text,
+    'assignedTo' : IDL.Principal,
+    'description' : IDL.Text,
+  });
+  
+  return IDL.Service({
+    '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'addMaterial' : IDL.Func([IDL.Text, IDL.Nat, IDL.Nat], [IDL.Nat], []),
+    'addProject' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Nat],
+        [IDL.Nat],
+        [],
+      ),
+    'approveMaterialRequest' : IDL.Func([IDL.Text, IDL.Nat], [], []),
+    'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole__1], [], []),
+    'assignTask' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Principal, IDL.Text],
+        [IDL.Nat],
+        [],
+      ),
+    'createReorderAlert' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
+    'getAllUsers' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(IDL.Principal, User))],
+        ['query'],
+      ),
+    'getCallerUserRole' : IDL.Func([], [UserRole__1], ['query']),
+    'getCurrentUserProfile' : IDL.Func([], [User], []),
+    'getFullDashboardSummary' : IDL.Func([], [DashboardSummary], ['query']),
+    'getInventory' : IDL.Func([], [IDL.Vec(Material)], ['query']),
+    'getProjectOverview' : IDL.Func([], [IDL.Vec(Project)], ['query']),
+    'getSiteEngineerTasks' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Vec(Task)],
+        ['query'],
+      ),
+    'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'loginUser' : IDL.Func([IDL.Text, IDL.Text], [], []),
+    'registerUser' : IDL.Func([IDL.Text, IDL.Text, IDL.Text, UserRole], [], []),
+    'submitDailyLog' : IDL.Func([IDL.Nat, IDL.Text], [], []),
+    'updateStock' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
+  });
+};
 
 export const init = ({ IDL }) => { return []; };
