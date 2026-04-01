@@ -27,6 +27,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import {
   BarChart2,
+  Camera,
   ClipboardList,
   Download,
   Plus,
@@ -34,6 +35,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import React from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "../../AuthContext";
@@ -211,6 +213,7 @@ export default function SiteEngineerDashboard() {
     data.currentProgress.toString(),
   );
   const [progressNotes, setProgressNotes] = useState("");
+  const [progressPhotos, setProgressPhotos] = useState<string[]>([]);
   const [reminderDismissed, setReminderDismissed] = useState(false);
   const showReminder =
     !reminderDismissed &&
@@ -272,7 +275,7 @@ export default function SiteEngineerDashboard() {
       toast.error("Percentage must be 0–100");
       return;
     }
-    updateProgress(pct, progressNotes, user?.name ?? "");
+    updateProgress(pct, progressNotes, user?.name ?? "", progressPhotos);
     addAuditEntry({
       user: user?.name ?? "",
       action: "Updated Progress",
@@ -281,6 +284,7 @@ export default function SiteEngineerDashboard() {
     });
     toast.success(`Progress updated to ${pct}%`);
     setProgressNotes("");
+    setProgressPhotos([]);
     setReminderDismissed(true);
   }
 
@@ -773,6 +777,64 @@ export default function SiteEngineerDashboard() {
                     data-ocid="se.progress.textarea"
                   />
                 </div>
+                <div>
+                  <Label>Site Photos (optional)</Label>
+                  <div className="mt-1 space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer border-2 border-dashed border-slate-200 rounded-lg p-3 hover:border-[#0ea5e9] transition-colors">
+                      <Camera className="w-4 h-4 text-slate-400" />
+                      <span className="text-sm text-slate-500">
+                        Attach site photos
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files ?? []);
+                          Promise.all(
+                            files.map(
+                              (f) =>
+                                new Promise<string>((res) => {
+                                  const reader = new FileReader();
+                                  reader.onload = () =>
+                                    res(reader.result as string);
+                                  reader.readAsDataURL(f);
+                                }),
+                            ),
+                          ).then((urls) =>
+                            setProgressPhotos((prev) => [...prev, ...urls]),
+                          );
+                        }}
+                        data-ocid="se.progress.photo_input"
+                      />
+                    </label>
+                    {progressPhotos.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {progressPhotos.map((src, i) => (
+                          <div key={src.slice(-20)} className="relative group">
+                            <img
+                              src={src}
+                              alt="Construction site view"
+                              className="w-16 h-16 object-cover rounded-lg border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setProgressPhotos((prev) =>
+                                  prev.filter((_, idx) => idx !== i),
+                                )
+                              }
+                              className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
                 <Button
                   className="bg-[#0ea5e9] hover:bg-[#0284c7] text-white"
                   onClick={handleUpdateProgress}
@@ -808,21 +870,44 @@ export default function SiteEngineerDashboard() {
                   </TableHeader>
                   <TableBody>
                     {[...data.progressHistory].reverse().map((p, i) => (
-                      <TableRow
-                        key={p.id}
-                        data-ocid={`se.progress.item.${i + 1}`}
-                      >
-                        <TableCell>{p.date}</TableCell>
-                        <TableCell>
-                          <Badge className="bg-[#0ea5e9]/10 text-[#0ea5e9]">
-                            {p.percentage}%
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-slate-500 max-w-xs truncate">
-                          {p.notes}
-                        </TableCell>
-                        <TableCell className="text-slate-400">{p.by}</TableCell>
-                      </TableRow>
+                      <React.Fragment key={p.id}>
+                        <TableRow data-ocid={`se.progress.item.${i + 1}`}>
+                          <TableCell>{p.date}</TableCell>
+                          <TableCell>
+                            <Badge className="bg-[#0ea5e9]/10 text-[#0ea5e9]">
+                              {p.percentage}%
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-slate-500 max-w-xs">
+                            {p.notes}
+                          </TableCell>
+                          <TableCell className="text-slate-400">
+                            {p.by}
+                          </TableCell>
+                        </TableRow>
+                        {p.photos && p.photos.length > 0 && (
+                          <TableRow>
+                            <TableCell colSpan={4} className="pt-0 pb-3">
+                              <div className="flex flex-wrap gap-2 mt-1">
+                                {p.photos.map((src) => (
+                                  <a
+                                    key={src.slice(-16)}
+                                    href={src}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    <img
+                                      src={src}
+                                      alt="Construction site view"
+                                      className="w-20 h-20 object-cover rounded-lg border hover:scale-105 transition-transform cursor-pointer"
+                                    />
+                                  </a>
+                                ))}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
                     ))}
                   </TableBody>
                 </Table>

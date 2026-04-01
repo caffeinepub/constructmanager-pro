@@ -51,6 +51,7 @@ export interface ProgressEntry {
   percentage: number;
   notes: string;
   by: string;
+  photos?: string[];
 }
 
 export interface PayrollSubmission {
@@ -567,7 +568,12 @@ interface ProjectDataContextType {
   recordInward: (t: Omit<MaterialTransaction, "id" | "type">) => void;
   recordOutward: (t: Omit<MaterialTransaction, "id" | "type">) => void;
   // Progress
-  updateProgress: (pct: number, notes: string, by: string) => void;
+  updateProgress: (
+    pct: number,
+    notes: string,
+    by: string,
+    photos?: string[],
+  ) => void;
   // Payroll
   submitPayroll: (period: string, amount: number, by: string) => void;
   reviewPayroll: (
@@ -731,13 +737,14 @@ export function ProjectDataProvider({ children, projectId }: Props) {
   );
 
   const updateProgress = useCallback(
-    (pct: number, notes: string, by: string) => {
+    (pct: number, notes: string, by: string, photos?: string[]) => {
       const entry: ProgressEntry = {
         id: Date.now().toString(),
         date: new Date().toISOString().split("T")[0],
         percentage: pct,
         notes,
         by,
+        photos: photos ?? [],
       };
       updateData((prev) => ({
         ...prev,
