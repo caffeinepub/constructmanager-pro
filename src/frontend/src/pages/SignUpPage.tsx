@@ -1,338 +1,288 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link, useNavigate } from "@tanstack/react-router";
-import {
-  BarChart2,
-  Check,
-  Eye,
-  EyeOff,
-  HardHat,
-  Loader2,
-  Package,
-  Shield,
-  Users,
-} from "lucide-react";
-import { useEffect, useState } from "react";
+import { Eye, EyeOff, HardHat, UserPlus } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { type UserRole, roleToDashboardPath, useAuth } from "../AuthContext";
+import { type UserRole, useAuth } from "../AuthContext";
+import { CURRENCIES, NATIONALITIES } from "../utils/currency";
 
-const roleOptions: {
-  value: UserRole;
-  label: string;
-  slug: string;
-  icon: React.ElementType;
-  description: string;
-}[] = [
-  {
-    value: "siteEngineer",
-    label: "Site Engineer",
-    slug: "site-engineer",
-    icon: Users,
-    description: "Monitor tasks, log daily progress, manage labour",
-  },
-  {
-    value: "chiefEngineer",
-    label: "Chief Engineer",
-    slug: "chief-engineer",
-    icon: Shield,
-    description: "Oversee projects, approve materials and budgets",
-  },
-  {
-    value: "materialsEngineer",
-    label: "Materials Engineer",
-    slug: "materials-engineer",
-    icon: Package,
-    description: "Manage inventory, stock updates and reorder alerts",
-  },
-  {
-    value: "siteOwner",
-    label: "Site Owner",
-    slug: "site-owner",
-    icon: BarChart2,
-    description: "Full platform access with financial overview",
-  },
-];
+const ROLES: { value: UserRole; label: string; desc: string; color: string }[] =
+  [
+    {
+      value: "chiefEngineer",
+      label: "Chief Engineer",
+      desc: "Full admin control",
+      color: "#f97316",
+    },
+    {
+      value: "siteEngineer",
+      label: "Site Engineer",
+      desc: "Labour & progress",
+      color: "#0ea5e9",
+    },
+    {
+      value: "materialsEngineer",
+      label: "Materials Engineer",
+      desc: "Inventory & stock",
+      color: "#10b981",
+    },
+    {
+      value: "siteOwner",
+      label: "Site Owner",
+      desc: "View reports",
+      color: "#8b5cf6",
+    },
+  ];
 
 export default function SignUpPage() {
-  const navigate = useNavigate();
   const { register } = useAuth();
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<UserRole>("siteEngineer");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const roleSlug = params.get("role");
-    if (roleSlug) {
-      const match = roleOptions.find((r) => r.slug === roleSlug);
-      if (match) setSelectedRole(match.value);
-    }
-  }, []);
+  const [confirm, setConfirm] = useState("");
+  const [role, setRole] = useState<UserRole | "">("");
+  const [nationality, setNationality] = useState("🇮🇳 India");
+  const [currency, setCurrency] = useState("INR (₹)");
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
-    if (!name || !email || !password || !confirmPassword) {
-      setError("Please fill in all fields.");
+    if (!role) {
+      toast.error("Please select a role");
       return;
     }
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+    if (password !== confirm) {
+      toast.error("Passwords don't match");
       return;
     }
     if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+      toast.error("Password must be at least 6 characters");
       return;
     }
-    setIsLoading(true);
+    setLoading(true);
     try {
-      await register(name, email, password, selectedRole);
-      toast.success("Account created! Welcome to ConstructManager Pro.");
-      await navigate({ to: roleToDashboardPath(selectedRole) });
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Registration failed. Please try again.",
+      await register(
+        name.trim(),
+        email.trim(),
+        password,
+        role as UserRole,
+        nationality,
+        currency,
       );
+      toast.success("Account created! Welcome to ConstructManager Pro.");
+      navigate({ to: "/projects" });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Registration failed");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{
-        background:
-          "linear-gradient(135deg, #071E30 0%, #0B2B45 60%, #0E3459 100%)",
-      }}
-    >
-      <header className="px-6 py-4 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-[#F28C2A] flex items-center justify-center">
-            <HardHat className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-white font-bold text-lg">
-            ConstructManager Pro
-          </span>
-        </Link>
-        <Link to="/login">
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-full border-[#93A4B5]/40 text-[#93A4B5] bg-transparent hover:bg-white/10 hover:text-white"
-          >
-            Sign In
-          </Button>
-        </Link>
+    <div className="min-h-screen bg-[#f1f5f9] flex flex-col">
+      <header className="bg-[#0f172a] text-white px-6 py-4">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-[#f97316] rounded-lg flex items-center justify-center">
+              <HardHat className="w-4 h-4 text-white" />
+            </div>
+            <span className="font-bold">
+              ConstructManager <span className="text-[#f97316]">Pro</span>
+            </span>
+          </Link>
+          <Link to="/login" className="text-sm text-slate-400 hover:text-white">
+            Sign In →
+          </Link>
+        </div>
       </header>
-      <div className="flex-1 flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-2xl">
-          <Card
-            className="border-0 shadow-2xl"
-            style={{
-              backgroundColor: "rgba(255,255,255,0.04)",
-              backdropFilter: "blur(20px)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <CardHeader className="text-center pb-4 pt-8">
-              <div className="w-16 h-16 rounded-2xl bg-[#F28C2A] flex items-center justify-center mx-auto mb-4">
-                <HardHat className="w-8 h-8 text-white" />
+
+      <div className="flex-1 flex items-center justify-center p-4 py-8">
+        <div className="w-full max-w-lg">
+          <div className="bg-white rounded-2xl shadow-lg p-8">
+            <div className="text-center mb-6">
+              <div className="w-14 h-14 bg-[#f97316]/10 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <UserPlus className="w-7 h-7 text-[#f97316]" />
               </div>
-              <h1 className="text-2xl font-bold text-white">
-                Create Your Account
+              <h1 className="text-2xl font-bold text-[#0f172a]">
+                Create your account
               </h1>
-              <p className="text-[#93A4B5] text-sm mt-1">
-                Join ConstructManager Pro — choose your role to get started
+              <p className="text-slate-500 text-sm mt-1">
+                Free forever. No domain restrictions. Global access.
               </p>
-            </CardHeader>
-            <CardContent className="px-8 pb-8">
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="space-y-2">
-                  <Label className="text-[#93A4B5] text-sm">
-                    Select Your Role
-                  </Label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {roleOptions.map((role) => {
-                      const Icon = role.icon;
-                      const isSelected = selectedRole === role.value;
-                      return (
-                        <button
-                          key={role.value}
-                          type="button"
-                          onClick={() => setSelectedRole(role.value)}
-                          className="relative text-left rounded-xl p-3 transition-all border"
-                          style={
-                            isSelected
-                              ? {
-                                  backgroundColor: "rgba(242,140,42,0.15)",
-                                  borderColor: "#F28C2A",
-                                }
-                              : {
-                                  backgroundColor: "rgba(255,255,255,0.04)",
-                                  borderColor: "rgba(255,255,255,0.08)",
-                                }
-                          }
-                        >
-                          {isSelected && (
-                            <Check
-                              className="absolute top-2 right-2 w-4 h-4"
-                              style={{ color: "#F28C2A" }}
-                            />
-                          )}
-                          <Icon
-                            className="w-5 h-5 mb-2"
-                            style={{
-                              color: isSelected ? "#F28C2A" : "#93A4B5",
-                            }}
-                          />
-                          <div
-                            className="font-semibold text-sm"
-                            style={{ color: isSelected ? "white" : "#93A4B5" }}
-                          >
-                            {role.label}
-                          </div>
-                          <div
-                            className="text-xs mt-0.5"
-                            style={{ color: "#6B7280" }}
-                          >
-                            {role.description}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your full name"
+                  required
+                  className="mt-1"
+                  data-ocid="signup.input"
+                />
+              </div>
+              <div>
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  className="mt-1"
+                  data-ocid="signup.input"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="nationality">Nationality</Label>
+                  <select
+                    id="nationality"
+                    value={nationality}
+                    onChange={(e) => setNationality(e.target.value)}
+                    className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    data-ocid="signup.select"
+                  >
+                    {NATIONALITIES.map((n) => (
+                      <option key={n.label} value={n.label}>
+                        {n.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="name" className="text-[#93A4B5] text-sm">
-                      Full Name
-                    </Label>
-                    <Input
-                      id="name"
-                      type="text"
-                      placeholder="Your full name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      autoComplete="name"
-                      className="bg-white/5 border-white/10 text-white placeholder:text-[#93A4B5]/50 focus:border-[#F28C2A]"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label
-                      htmlFor="signup-email"
-                      className="text-[#93A4B5] text-sm"
-                    >
-                      Email Address
-                    </Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      autoComplete="email"
-                      className="bg-white/5 border-white/10 text-white placeholder:text-[#93A4B5]/50 focus:border-[#F28C2A]"
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="currency">Currency</Label>
+                  <select
+                    id="currency"
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    data-ocid="signup.select"
+                  >
+                    {CURRENCIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label
-                      htmlFor="signup-password"
-                      className="text-[#93A4B5] text-sm"
+              </div>
+
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <div className="relative mt-1">
+                  <Input
+                    id="password"
+                    type={showPw ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Min. 6 characters"
+                    required
+                    className="pr-10"
+                    data-ocid="signup.input"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw(!showPw)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPw ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="confirm">Confirm Password</Label>
+                <div className="relative mt-1">
+                  <Input
+                    id="confirm"
+                    type={showConfirm ? "text" : "password"}
+                    value={confirm}
+                    onChange={(e) => setConfirm(e.target.value)}
+                    placeholder="Repeat password"
+                    required
+                    className="pr-10"
+                    data-ocid="signup.input"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm(!showConfirm)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showConfirm ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <Label>Select Your Role</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {ROLES.map((r) => (
+                    <button
+                      key={r.value}
+                      type="button"
+                      onClick={() => setRole(r.value)}
+                      className="p-3 rounded-xl border-2 text-left transition-all"
+                      style={
+                        role === r.value
+                          ? {
+                              borderColor: r.color,
+                              backgroundColor: `${r.color}10`,
+                            }
+                          : { borderColor: "#e2e8f0" }
+                      }
                     >
-                      Password
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="signup-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Min. 6 characters"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        autoComplete="new-password"
-                        className="bg-white/5 border-white/10 text-white placeholder:text-[#93A4B5]/50 focus:border-[#F28C2A] pr-10"
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#93A4B5] hover:text-white"
-                        onClick={() => setShowPassword(!showPassword)}
+                      <p
+                        className="text-sm font-semibold"
+                        style={{
+                          color: role === r.value ? r.color : "#0f172a",
+                        }}
                       >
-                        {showPassword ? (
-                          <EyeOff className="w-4 h-4" />
-                        ) : (
-                          <Eye className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label
-                      htmlFor="confirm-password"
-                      className="text-[#93A4B5] text-sm"
-                    >
-                      Confirm Password
-                    </Label>
-                    <Input
-                      id="confirm-password"
-                      type="password"
-                      placeholder="Repeat password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      autoComplete="new-password"
-                      className="bg-white/5 border-white/10 text-white placeholder:text-[#93A4B5]/50 focus:border-[#F28C2A]"
-                    />
-                  </div>
+                        {r.label}
+                      </p>
+                      <p className="text-xs text-slate-400">{r.desc}</p>
+                    </button>
+                  ))}
                 </div>
-                {error && (
-                  <div
-                    className="rounded-lg px-4 py-3 text-sm"
-                    style={{
-                      backgroundColor: "rgba(220,38,38,0.12)",
-                      color: "#FCA5A5",
-                      border: "1px solid rgba(220,38,38,0.2)",
-                    }}
-                  >
-                    {error}
-                  </div>
-                )}
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full rounded-full font-semibold text-white py-2.5"
-                  style={{ backgroundColor: "#F28C2A" }}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Creating Account...
-                    </>
-                  ) : (
-                    "Create Account"
-                  )}
-                </Button>
-                <p className="text-center text-[#93A4B5] text-sm">
-                  Already have an account?{" "}
-                  <Link
-                    to="/login"
-                    className="text-[#F28C2A] hover:underline font-medium"
-                  >
-                    Sign in
-                  </Link>
-                </p>
-              </form>
-            </CardContent>
-          </Card>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-[#f97316] hover:bg-[#ea6c10] text-white"
+                disabled={loading}
+                data-ocid="signup.submit_button"
+              >
+                {loading ? "Creating account..." : "Create Account"}
+              </Button>
+            </form>
+
+            <p className="text-center text-sm text-slate-500 mt-4">
+              Already have an account?{" "}
+              <Link
+                to="/login"
+                className="text-[#f97316] hover:underline font-medium"
+              >
+                Sign in
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -8,10 +8,15 @@ import {
   createRouter,
   redirect,
 } from "@tanstack/react-router";
-import { AuthProvider, roleToDashboardPath, useAuth } from "./AuthContext";
+import { AuthProvider, useAuth } from "./AuthContext";
+import { ChatProvider } from "./ChatContext";
+import { ProjectDataProvider } from "./ProjectDataContext";
+import DemoPage from "./pages/DemoPage";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
+import ProjectsDashboard from "./pages/ProjectsDashboard";
 import SignUpPage from "./pages/SignUpPage";
+import UserManualPage from "./pages/UserManualPage";
 import ChiefEngineerDashboard from "./pages/dashboards/ChiefEngineerDashboard";
 import MaterialsEngineerDashboard from "./pages/dashboards/MaterialsEngineerDashboard";
 import SiteEngineerDashboard from "./pages/dashboards/SiteEngineerDashboard";
@@ -19,51 +24,53 @@ import SiteOwnerDashboard from "./pages/dashboards/SiteOwnerDashboard";
 
 const queryClient = new QueryClient();
 
-// Root route wraps everything in providers
+function AppWithProjectData({ children }: { children: React.ReactNode }) {
+  const { activeProject } = useAuth();
+  return (
+    <ProjectDataProvider projectId={activeProject?.id ?? null}>
+      {children}
+    </ProjectDataProvider>
+  );
+}
+
 const rootRoute = createRootRoute({
   component: () => (
     <AuthProvider>
-      <Outlet />
-      <Toaster />
+      <ChatProvider>
+        <AppWithProjectData>
+          <Outlet />
+          <Toaster />
+        </AppWithProjectData>
+      </ChatProvider>
     </AuthProvider>
   ),
 });
 
-// Guard wrappers
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   if (isLoading) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        data-ocid="app.loading_state"
-      >
-        <div className="animate-spin w-8 h-8 border-4 border-[#F28C2A] border-t-transparent rounded-full" />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-[#f97316] border-t-transparent rounded-full" />
       </div>
     );
   }
-  if (!user) {
-    throw redirect({ to: "/login" });
-  }
+  if (!user) throw redirect({ to: "/" });
   return <>{children}</>;
 }
 
 function PublicGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   if (isLoading) return null;
-  if (user) {
-    throw redirect({ to: roleToDashboardPath(user.role) });
-  }
+  if (user) throw redirect({ to: "/projects" });
   return <>{children}</>;
 }
 
-// Routes
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   component: LandingPage,
 });
-
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
@@ -73,7 +80,6 @@ const loginRoute = createRoute({
     </PublicGuard>
   ),
 });
-
 const signupRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/signup",
@@ -83,7 +89,25 @@ const signupRoute = createRoute({
     </PublicGuard>
   ),
 });
-
+const projectsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/projects",
+  component: () => (
+    <AuthGuard>
+      <ProjectsDashboard />
+    </AuthGuard>
+  ),
+});
+const userManualRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/user-manual",
+  component: UserManualPage,
+});
+const demoRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/demo",
+  component: DemoPage,
+});
 const siteEngineerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/dashboard/site-engineer",
@@ -93,7 +117,6 @@ const siteEngineerRoute = createRoute({
     </AuthGuard>
   ),
 });
-
 const chiefEngineerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/dashboard/chief-engineer",
@@ -103,7 +126,6 @@ const chiefEngineerRoute = createRoute({
     </AuthGuard>
   ),
 });
-
 const materialsEngineerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/dashboard/materials-engineer",
@@ -113,7 +135,6 @@ const materialsEngineerRoute = createRoute({
     </AuthGuard>
   ),
 });
-
 const siteOwnerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/dashboard/site-owner",
@@ -128,6 +149,9 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   loginRoute,
   signupRoute,
+  projectsRoute,
+  userManualRoute,
+  demoRoute,
   siteEngineerRoute,
   chiefEngineerRoute,
   materialsEngineerRoute,

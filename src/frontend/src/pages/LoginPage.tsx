@@ -1,252 +1,207 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Eye, EyeOff, HardHat, Loader2 } from "lucide-react";
+import { Eye, EyeOff, HardHat, LogIn } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import {
-  ROLE_CREDENTIALS,
-  type UserRole,
-  roleToDashboardPath,
-  useAuth,
-} from "../AuthContext";
+import { roleToDashboardPath, useAuth } from "../AuthContext";
 
-const roleLabels: Record<UserRole, string> = {
-  siteOwner: "Site Owner",
-  chiefEngineer: "Chief Engineer",
-  materialsEngineer: "Materials Engineer",
-  siteEngineer: "Site Engineer",
-};
+const DEMO_CREDS = [
+  {
+    role: "Chief Engineer",
+    email: "ce@demo.com",
+    pw: "ChiefEng@123",
+    color: "#f97316",
+  },
+  {
+    role: "Site Engineer",
+    email: "se@demo.com",
+    pw: "SiteEng@123",
+    color: "#0ea5e9",
+  },
+  {
+    role: "Materials Engineer",
+    email: "me@demo.com",
+    pw: "MatEng@123",
+    color: "#10b981",
+  },
+  {
+    role: "Site Owner",
+    email: "so@demo.com",
+    pw: "SiteOwner@123",
+    color: "#8b5cf6",
+  },
+];
 
 export default function LoginPage() {
-  const navigate = useNavigate();
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [showCredentials, setShowCredentials] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [showCreds, setShowCreds] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
-    if (!email || !password) {
-      setError("Please fill in all fields.");
-      return;
-    }
-    setIsLoading(true);
+    setLoading(true);
     try {
-      await login(email, password);
-      toast.success("Welcome back!");
-      // Navigate — the guard will pick up role and redirect
-      await navigate({ to: "/dashboard/site-engineer" });
+      await login(email.trim(), password);
+      toast.success("Logged in successfully!");
+      navigate({ to: "/projects" });
     } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Invalid credentials. Please try again.",
-      );
+      const msg = err instanceof Error ? err.message : "Login failed";
+      toast.error(msg);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }
 
-  function fillCredentials(role: UserRole) {
-    setEmail(ROLE_CREDENTIALS[role].email);
-    setPassword(ROLE_CREDENTIALS[role].password);
+  function fillCred(email: string, pw: string) {
+    setEmail(email);
+    setPassword(pw);
   }
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{
-        background:
-          "linear-gradient(135deg, #071E30 0%, #0B2B45 60%, #0E3459 100%)",
-      }}
-    >
-      <header className="px-6 py-4 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-[#F28C2A] flex items-center justify-center">
-            <HardHat className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-white font-bold text-lg">
-            ConstructManager Pro
-          </span>
-        </Link>
-        <Link to="/signup">
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-full border-[#93A4B5]/40 text-[#93A4B5] bg-transparent hover:bg-white/10 hover:text-white"
+    <div className="min-h-screen bg-[#f1f5f9] flex flex-col">
+      <header className="bg-[#0f172a] text-white px-6 py-4">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-[#f97316] rounded-lg flex items-center justify-center">
+              <HardHat className="w-4 h-4 text-white" />
+            </div>
+            <span className="font-bold">
+              ConstructManager <span className="text-[#f97316]">Pro</span>
+            </span>
+          </Link>
+          <Link
+            to="/signup"
+            className="text-sm text-slate-400 hover:text-white"
           >
-            Create Account
-          </Button>
-        </Link>
+            Sign Up →
+          </Link>
+        </div>
       </header>
-      <div className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md space-y-4">
-          {/* Quick Access Credentials Panel */}
-          <div
-            className="rounded-xl overflow-hidden"
-            style={{
-              backgroundColor: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => setShowCredentials(!showCredentials)}
-              className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium"
-              style={{ color: "#F28C2A" }}
-            >
-              <span>View Role Credentials (Quick Access)</span>
-              <span>{showCredentials ? "▲" : "▼"}</span>
-            </button>
-            {showCredentials && (
-              <div className="px-4 pb-4 space-y-2">
-                {(Object.keys(ROLE_CREDENTIALS) as UserRole[]).map((role) => (
-                  <div
-                    key={role}
-                    className="rounded-lg p-3 flex items-center justify-between gap-3"
-                    style={{
-                      backgroundColor: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.06)",
-                    }}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="text-white text-xs font-semibold mb-0.5">
-                        {roleLabels[role]}
-                      </div>
-                      <div className="text-[#93A4B5] text-xs truncate">
-                        {ROLE_CREDENTIALS[role].email}
-                      </div>
-                      <div className="text-[#93A4B5] text-xs">
-                        Password:{" "}
-                        <span className="text-white font-mono">
-                          {ROLE_CREDENTIALS[role].password}
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => fillCredentials(role)}
-                      className="shrink-0 text-xs px-3 py-1 rounded-full font-medium"
-                      style={{
-                        backgroundColor: "rgba(242,140,42,0.15)",
-                        color: "#F28C2A",
-                        border: "1px solid rgba(242,140,42,0.3)",
-                      }}
-                    >
-                      Use
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
 
-          <Card
-            className="border-0 shadow-2xl"
-            style={{
-              backgroundColor: "rgba(255,255,255,0.04)",
-              backdropFilter: "blur(20px)",
-              border: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <CardHeader className="text-center pb-6 pt-8">
-              <div className="w-16 h-16 rounded-2xl bg-[#F28C2A] flex items-center justify-center mx-auto mb-4">
-                <HardHat className="w-8 h-8 text-white" />
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-lg p-8">
+            <div className="text-center mb-6">
+              <div className="w-14 h-14 bg-[#f97316]/10 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <LogIn className="w-7 h-7 text-[#f97316]" />
               </div>
-              <h1 className="text-2xl font-bold text-white">Welcome Back</h1>
-              <p className="text-[#93A4B5] text-sm mt-1">
-                Sign in to your ConstructManager Pro account
+              <h1 className="text-2xl font-bold text-[#0f172a]">
+                Welcome back
+              </h1>
+              <p className="text-slate-500 text-sm mt-1">
+                Sign in to your account
               </p>
-            </CardHeader>
-            <CardContent className="px-8 pb-8">
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-[#93A4B5] text-sm">
-                    Email Address
-                  </Label>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  className="mt-1"
+                  data-ocid="login.input"
+                />
+              </div>
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <div className="relative mt-1">
                   <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    autoComplete="email"
-                    className="bg-white/5 border-white/10 text-white placeholder:text-[#93A4B5]/50 focus:border-[#F28C2A]"
+                    id="password"
+                    type={showPw ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Your password"
+                    required
+                    className="pr-10"
+                    data-ocid="login.input"
                   />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="password" className="text-[#93A4B5] text-sm">
-                    Password
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      autoComplete="current-password"
-                      className="bg-white/5 border-white/10 text-white placeholder:text-[#93A4B5]/50 focus:border-[#F28C2A] pr-10"
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#93A4B5] hover:text-white"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-                {error && (
-                  <div
-                    className="rounded-lg px-4 py-3 text-sm"
-                    style={{
-                      backgroundColor: "rgba(220,38,38,0.12)",
-                      color: "#FCA5A5",
-                      border: "1px solid rgba(220,38,38,0.2)",
-                    }}
+                  <button
+                    type="button"
+                    onClick={() => setShowPw(!showPw)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    aria-label={showPw ? "Hide password" : "Show password"}
                   >
-                    {error}
-                  </div>
-                )}
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full rounded-full font-semibold text-white py-2.5 mt-2"
-                  style={{ backgroundColor: "#F28C2A" }}
+                    {showPw ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              <Button
+                type="submit"
+                className="w-full bg-[#f97316] hover:bg-[#ea6c10] text-white"
+                disabled={loading}
+                data-ocid="login.submit_button"
+              >
+                {loading ? "Signing in..." : "Sign In"}
+              </Button>
+            </form>
+
+            <div className="mt-4 text-center">
+              <p className="text-sm text-slate-500">
+                No account?{" "}
+                <Link
+                  to="/signup"
+                  className="text-[#f97316] hover:underline font-medium"
                 >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Signing in...
-                    </>
-                  ) : (
-                    "Sign In"
-                  )}
-                </Button>
-                <p className="text-center text-[#93A4B5] text-sm">
-                  Don't have an account?{" "}
-                  <Link
-                    to="/signup"
-                    className="text-[#F28C2A] hover:underline font-medium"
-                  >
-                    Create one
-                  </Link>
-                </p>
-              </form>
-            </CardContent>
-          </Card>
+                  Create one free
+                </Link>
+              </p>
+            </div>
+
+            <div className="mt-6 border-t pt-4">
+              <button
+                type="button"
+                onClick={() => setShowCreds(!showCreds)}
+                className="w-full text-sm text-slate-500 hover:text-[#f97316] flex items-center justify-center gap-1"
+              >
+                {showCreds ? "Hide" : "View"} Demo Credentials
+              </button>
+              {showCreds && (
+                <div className="mt-3 space-y-2">
+                  {DEMO_CREDS.map((c) => (
+                    <div
+                      key={c.email}
+                      className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2"
+                    >
+                      <div>
+                        <p
+                          className="text-xs font-semibold"
+                          style={{ color: c.color }}
+                        >
+                          {c.role}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {c.email} / <span className="font-mono">{c.pw}</span>
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={() => fillCred(c.email, c.pw)}
+                      >
+                        Use
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

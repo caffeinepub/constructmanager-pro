@@ -1,1011 +1,854 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Link } from "@tanstack/react-router";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   BarChart2,
   Bell,
-  Calculator,
+  BookOpen,
   CheckCircle,
+  Eye,
+  EyeOff,
+  Github,
   HardHat,
-  Lock,
-  MapPin,
-  Menu,
-  Monitor,
   Package,
   Shield,
-  TrendingUp,
   Users,
-  X,
 } from "lucide-react";
-import { motion } from "motion/react";
 import { useState } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { toast } from "sonner";
+import { type UserRole, useAuth } from "../AuthContext";
 
-const materialData = [
-  { name: "Cement", stock: 180, reorder: 200 },
-  { name: "Steel", stock: 450, reorder: 150 },
-  { name: "Sand", stock: 800, reorder: 300 },
-  { name: "Bricks", stock: 1200, reorder: 400 },
-];
-
-const workers = [
+const DEMO_CREDS = [
   {
-    name: "Rajesh Kumar",
-    initials: "RK",
-    clockIn: "07:45 AM",
-    clockOut: "05:30 PM",
-    wage: "₹520",
+    role: "Chief Engineer",
+    email: "ce@demo.com",
+    pw: "ChiefEng@123",
+    color: "#f97316",
   },
   {
-    name: "Sanjay Mehta",
-    initials: "SM",
-    clockIn: "08:00 AM",
-    clockOut: "05:00 PM",
-    wage: "₹480",
+    role: "Site Engineer",
+    email: "se@demo.com",
+    pw: "SiteEng@123",
+    color: "#0ea5e9",
   },
   {
-    name: "Priya Sharma",
-    initials: "PS",
-    clockIn: "07:30 AM",
-    clockOut: "06:00 PM",
-    wage: "₹560",
+    role: "Materials Engineer",
+    email: "me@demo.com",
+    pw: "MatEng@123",
+    color: "#10b981",
   },
   {
-    name: "Arjun Verma",
-    initials: "AV",
-    clockIn: "08:15 AM",
-    clockOut: "05:45 PM",
-    wage: "₹500",
+    role: "Site Owner",
+    email: "so@demo.com",
+    pw: "SiteOwner@123",
+    color: "#8b5cf6",
   },
 ];
 
-const roles = [
-  {
-    icon: Shield,
-    title: "Chief Engineer",
-    description: "Full oversight, master reports, approval power.",
-    permissions: [
-      "Approve all requests",
-      "View master reports",
-      "Manage all modules",
-      "System configuration",
-    ],
-    color: "bg-[#0B2B45]",
-    roleSlug: "chief-engineer",
-  },
+const ROLES: { value: UserRole; label: string; color: string }[] = [
+  { value: "chiefEngineer", label: "Chief Engineer", color: "#f97316" },
+  { value: "siteEngineer", label: "Site Engineer", color: "#0ea5e9" },
+  { value: "materialsEngineer", label: "Materials Engineer", color: "#10b981" },
+  { value: "siteOwner", label: "Site Owner", color: "#8b5cf6" },
+];
+
+const FEATURES = [
   {
     icon: BarChart2,
-    title: "Site Owner",
-    description: "Financial dashboards, project progress tracking.",
-    permissions: [
-      "Financial reports",
-      "Project analytics",
-      "Budget monitoring",
-      "Progress tracking",
-    ],
-    color: "bg-[#F28C2A]",
-    roleSlug: "site-owner",
+    title: "Real-time Progress",
+    desc: "Visual dashboards with live updates for project completion %",
+    color: "#f97316",
   },
   {
     icon: Users,
-    title: "Site Engineer",
-    description:
-      "Labour management, attendance verification, material requests.",
-    permissions: [
-      "Labour management",
-      "Attendance verification",
-      "Material requests",
-      "Daily reports",
-    ],
-    color: "bg-[#1FA6A3]",
-    roleSlug: "site-engineer",
-  },
-  {
-    icon: Package,
-    title: "Material Engineer",
-    description: "Material inward/outward, stock updates, reorder alerts.",
-    permissions: [
-      "Stock management",
-      "Inward/outward entries",
-      "Reorder alerts",
-      "Vendor coordination",
-    ],
-    color: "bg-[#0B2B45]",
-    roleSlug: "materials-engineer",
-  },
-];
-
-const features = [
-  {
-    icon: TrendingUp,
-    title: "Real-time Stock Analysis",
-    desc: "Monitor material levels with live dashboards and instant updates.",
-    color: "bg-[#1FA6A3]",
-  },
-  {
-    icon: MapPin,
-    title: "GPS-enabled Attendance",
-    desc: "Verify worker presence with GPS clock-in/out from any location.",
-    color: "bg-[#F28C2A]",
+    title: "GPS Attendance",
+    desc: "Daily clock-in/out with GPS stamp. Auto-calculate wages.",
+    color: "#0ea5e9",
   },
   {
     icon: Bell,
-    title: "Automated Reorder Alerts",
-    desc: "Get notified instantly when materials fall below threshold levels.",
-    color: "bg-[#0B2B45]",
+    title: "Reorder Alerts",
+    desc: "Automatic low-stock notifications to Material Engineers.",
+    color: "#10b981",
   },
   {
-    icon: Calculator,
-    title: "Daily Wage Ledger",
-    desc: "Automated wage calculations based on attendance and shift data.",
-    color: "bg-[#1FA6A3]",
+    icon: Package,
+    title: "Material Inventory",
+    desc: "Alphabetically sorted inventory with GRN and issue tracking.",
+    color: "#8b5cf6",
   },
   {
-    icon: Lock,
-    title: "Role-Based Permissions",
-    desc: "Granular access control across all modules and operations.",
-    color: "bg-[#F28C2A]",
+    icon: Shield,
+    title: "Role-Based Access",
+    desc: "4 distinct roles with enforced permissions per action.",
+    color: "#f97316",
   },
   {
-    icon: Monitor,
-    title: "Cross-Platform (Mobile & Web)",
-    desc: "Seamless experience across desktop, tablet, and mobile devices.",
-    color: "bg-[#0B2B45]",
+    icon: BookOpen,
+    title: "Audit Log",
+    desc: "Every action logged with timestamp and user for accountability.",
+    color: "#0ea5e9",
   },
 ];
 
-const navLinks = [
-  { label: "Roles", href: "#roles" },
-  { label: "Materials", href: "#materials" },
-  { label: "Labour", href: "#labour" },
-  { label: "Features", href: "#features" },
-  { label: "Team", href: "#team" },
+const OWNERS = [
+  {
+    name: "Mohamed Asif M",
+    role: "Full Stack Lead",
+    img: "/assets/uploads/mohamed_asif_m-019d2137-fc1c-725f-850e-007b024c42ab-2.png",
+    email: "mohamedasif.ce23@krct.ac.in",
+  },
+  {
+    name: "Kumaran Bala",
+    role: "Backend Engineer",
+    img: "/assets/uploads/kumaran_bala-019d2137-fc07-76ee-9225-b8a357eb3e63-1.png",
+    email: "kumaranbala.ce23@krct.ac.in",
+  },
+  {
+    name: "Aswin M",
+    role: "Frontend Developer",
+    img: "/assets/uploads/aswin_m-019d2137-fd4c-77ab-b14a-5efea6ad48a2-3.png",
+    email: "aswin.ce23@krct.ac.in",
+  },
+  {
+    name: "Raksha Manikandan M",
+    role: "UI/UX Designer",
+    img: "/assets/uploads/raksha_manikandan_m-019d2138-02c2-7368-a7b5-e0fae8e9a060-4.png",
+    email: "rakshamanikandan.ce23@krct.ac.in",
+  },
 ];
 
-function Navbar() {
-  const [open, setOpen] = useState(false);
-  return (
-    <header
-      className="sticky top-0 z-50 w-full"
-      style={{ backgroundColor: "#0B2B45" }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-[#F28C2A] flex items-center justify-center">
-              <HardHat className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-white font-bold text-lg hidden sm:block">
-              ConstructManager Pro
-            </span>
-            <span className="text-white font-bold text-base sm:hidden">
-              CMP
-            </span>
-          </div>
-          <nav className="hidden md:flex items-center gap-6">
-            {navLinks.map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
-                className="text-sm text-[#93A4B5] hover:text-white transition-colors"
-              >
-                {l.label}
-              </a>
-            ))}
-          </nav>
-          <div className="hidden md:flex items-center gap-3">
-            <Link to="/login">
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-full border-[#93A4B5]/40 text-[#93A4B5] bg-transparent hover:bg-white/10 hover:text-white"
-                data-ocid="nav.login.button"
-              >
-                Login
-              </Button>
-            </Link>
-            <Link to="/signup">
-              <Button
-                size="sm"
-                className="rounded-full font-semibold"
-                style={{ backgroundColor: "#F28C2A", color: "white" }}
-                data-ocid="nav.signup.button"
-              >
-                Sign Up
-              </Button>
-            </Link>
-          </div>
-          <button
-            type="button"
-            className="md:hidden text-white p-2"
-            onClick={() => setOpen(!open)}
-            data-ocid="nav.mobile.toggle"
-          >
-            {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-        </div>
-      </div>
-      {open && (
-        <div
-          className="md:hidden px-4 pb-4 space-y-2"
-          style={{ backgroundColor: "#071E30" }}
-        >
-          {navLinks.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              onClick={() => setOpen(false)}
-              className="block py-2 text-sm text-[#93A4B5] hover:text-white"
-            >
-              {l.label}
-            </a>
-          ))}
-          <div className="flex gap-2 pt-2">
-            <Link to="/login" className="flex-1" onClick={() => setOpen(false)}>
-              <Button
-                variant="outline"
-                className="w-full rounded-full border-[#93A4B5]/40 text-[#93A4B5] bg-transparent"
-                data-ocid="nav.mobile.login.button"
-              >
-                Login
-              </Button>
-            </Link>
-            <Link
-              to="/signup"
-              className="flex-1"
-              onClick={() => setOpen(false)}
-            >
-              <Button
-                className="w-full rounded-full"
-                style={{ backgroundColor: "#F28C2A", color: "white" }}
-                data-ocid="nav.mobile.signup.button"
-              >
-                Sign Up
-              </Button>
-            </Link>
-          </div>
-        </div>
-      )}
-    </header>
-  );
-}
+function AuthSection() {
+  const { login, register } = useAuth();
+  const navigate = useNavigate();
 
-function HeroSection() {
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPw, setLoginPw] = useState("");
+  const [showLoginPw, setShowLoginPw] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [showCreds, setShowCreds] = useState(false);
+
+  const [regName, setRegName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPw, setRegPw] = useState("");
+  const [regConfirm, setRegConfirm] = useState("");
+  const [showRegPw, setShowRegPw] = useState(false);
+  const [showRegConfirm, setShowRegConfirm] = useState(false);
+  const [regRole, setRegRole] = useState<UserRole | "">("");
+  const [regLoading, setRegLoading] = useState(false);
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoginLoading(true);
+    try {
+      await login(loginEmail.trim(), loginPw);
+      toast.success("Logged in!");
+      navigate({ to: "/projects" });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Login failed");
+    } finally {
+      setLoginLoading(false);
+    }
+  }
+
+  async function handleRegister(e: React.FormEvent) {
+    e.preventDefault();
+    if (!regRole) {
+      toast.error("Select a role");
+      return;
+    }
+    if (regPw !== regConfirm) {
+      toast.error("Passwords don't match");
+      return;
+    }
+    if (regPw.length < 6) {
+      toast.error("Password too short (min 6)");
+      return;
+    }
+    setRegLoading(true);
+    try {
+      await register(
+        regName.trim(),
+        regEmail.trim(),
+        regPw,
+        regRole as UserRole,
+      );
+      toast.success("Account created!");
+      navigate({ to: "/projects" });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Registration failed");
+    } finally {
+      setRegLoading(false);
+    }
+  }
+
+  function fillCredential(email: string, pw: string) {
+    setLoginEmail(email);
+    setLoginPw(pw);
+  }
+
   return (
-    <section
-      className="hex-pattern relative overflow-hidden"
-      style={{
-        background:
-          "linear-gradient(135deg, #071E30 0%, #0B2B45 60%, #0E3459 100%)",
-      }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <motion.div
-            initial={{ opacity: 0, x: -40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7 }}
-            className="space-y-6"
-          >
-            <Badge
-              className="rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wider"
-              style={{
-                backgroundColor: "rgba(242,140,42,0.15)",
-                color: "#F28C2A",
-                border: "1px solid rgba(242,140,42,0.3)",
-              }}
-            >
-              Construction Site Management
-            </Badge>
-            <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-tight">
-              ConstructManager<span style={{ color: "#F28C2A" }}> Pro</span>
-            </h1>
-            <p className="text-xl text-[#93A4B5] font-medium">
-              Integrated Material &amp; Labour Management for Construction
-              Sites.
-            </p>
-            <p className="text-[#93A4B5] leading-relaxed">
-              Transform your construction operations with a unified digital
-              platform that delivers real-time visibility into materials,
-              attendance, and project progress — all in one place.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <Link to="/signup">
-                <Button
-                  data-ocid="hero.signup.button"
-                  size="lg"
-                  className="rounded-full font-semibold uppercase tracking-wide px-8"
-                  style={{ backgroundColor: "#F28C2A", color: "white" }}
-                >
-                  Get Started
-                </Button>
-              </Link>
-              <Link to="/login">
-                <Button
-                  data-ocid="hero.login.button"
-                  size="lg"
-                  variant="outline"
-                  className="rounded-full font-semibold uppercase tracking-wide px-8"
-                  style={{
-                    borderColor: "rgba(147,164,181,0.4)",
-                    color: "#93A4B5",
-                    backgroundColor: "transparent",
-                  }}
-                >
-                  Login
-                </Button>
-              </Link>
-            </div>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="relative"
-          >
-            <div className="rounded-2xl overflow-hidden glow-shadow relative">
-              <img
-                src="/assets/generated/hero-construction.dim_1200x600.jpg"
-                alt="Construction site"
-                className="w-full h-auto object-cover rounded-2xl"
-                style={{ maxHeight: "400px" }}
+    <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
+      <Tabs defaultValue="login">
+        <TabsList className="w-full mb-4">
+          <TabsTrigger value="login" className="flex-1">
+            Sign In
+          </TabsTrigger>
+          <TabsTrigger value="register" className="flex-1">
+            Sign Up
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="login">
+          <form onSubmit={handleLogin} className="space-y-3">
+            <div>
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                className="mt-1"
               />
-              <div className="absolute top-4 left-4">
-                <div className="bg-white/90 backdrop-blur rounded-xl px-3 py-2 shadow-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-xs font-semibold text-[#0B2B45]">
-                      Live Tracking Active
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="absolute bottom-4 right-4">
-                <div className="bg-[#0B2B45]/90 backdrop-blur rounded-xl px-3 py-2 shadow-lg">
-                  <div className="text-xs text-[#93A4B5]">Total Workers</div>
-                  <div className="text-white font-bold text-lg">247</div>
-                </div>
+            </div>
+            <div>
+              <Label>Password</Label>
+              <div className="relative mt-1">
+                <Input
+                  type={showLoginPw ? "text" : "password"}
+                  value={loginPw}
+                  onChange={(e) => setLoginPw(e.target.value)}
+                  placeholder="Password"
+                  required
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPw(!showLoginPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                >
+                  {showLoginPw ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
               </div>
             </div>
-          </motion.div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function RolesSection() {
-  return (
-    <section
-      id="roles"
-      className="py-20"
-      style={{ backgroundColor: "#F4F7FA" }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-14"
-        >
-          <h2 className="text-3xl lg:text-4xl font-bold text-[#0B2B45] mb-3">
-            Role-Based Access Hierarchy
-          </h2>
-          <p className="text-[#6B7280] max-w-xl mx-auto">
-            Every stakeholder gets tailored access and controls based on their
-            responsibilities.
-          </p>
-        </motion.div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {roles.map((role, i) => (
-            <motion.div
-              key={role.title}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.1 }}
+            <Button
+              type="submit"
+              className="w-full bg-[#f97316] hover:bg-[#ea6c10] text-white"
+              disabled={loginLoading}
             >
-              <Card
-                className="h-full card-shadow border-border hover:scale-[1.02] transition-transform flex flex-col"
-                data-ocid={`roles.item.${i + 1}`}
-              >
-                <CardHeader className="pb-3">
+              {loginLoading ? "Signing in..." : "Sign In"}
+            </Button>
+          </form>
+          <div className="mt-3 border-t pt-3">
+            <button
+              type="button"
+              onClick={() => setShowCreds(!showCreds)}
+              className="text-xs text-slate-400 hover:text-[#f97316] w-full text-center"
+            >
+              {showCreds ? "Hide" : "View"} Demo Credentials
+            </button>
+            {showCreds && (
+              <div className="mt-2 space-y-1.5">
+                {DEMO_CREDS.map((c) => (
                   <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center mb-3 ${role.color}`}
+                    key={c.email}
+                    className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2"
                   >
-                    <role.icon className="w-6 h-6 text-white" />
-                  </div>
-                  <CardTitle className="text-base text-[#0B2B45]">
-                    {role.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col flex-1">
-                  <p className="text-sm text-[#6B7280] mb-4">
-                    {role.description}
-                  </p>
-                  <ul className="space-y-1.5 mb-5 flex-1">
-                    {role.permissions.map((p) => (
-                      <li
-                        key={p}
-                        className="flex items-center gap-2 text-xs text-[#6B7280]"
+                    <div>
+                      <p
+                        className="text-xs font-semibold"
+                        style={{ color: c.color }}
                       >
-                        <div
-                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: "#1FA6A3" }}
-                        />
-                        {p}
-                      </li>
-                    ))}
-                  </ul>
-                  <Link to="/signup" search={{ role: role.roleSlug }}>
+                        {c.role}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {c.email} / <span className="font-mono">{c.pw}</span>
+                      </p>
+                    </div>
                     <Button
                       size="sm"
-                      className="w-full rounded-full text-xs font-semibold"
-                      style={{ backgroundColor: "#F28C2A", color: "white" }}
-                      data-ocid={`roles.signup.button.${i + 1}`}
+                      variant="outline"
+                      className="h-6 text-xs px-2"
+                      onClick={() => fillCredential(c.email, c.pw)}
                     >
-                      Sign Up as {role.title}
+                      Use
                     </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function FeaturesSection() {
-  return (
-    <section id="features" className="py-20 bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-14"
-        >
-          <h2 className="text-3xl lg:text-4xl font-bold text-[#0B2B45] mb-3">
-            Platform Capabilities
-          </h2>
-          <p className="text-[#6B7280] max-w-xl mx-auto">
-            Everything you need to run a modern, digitally-driven construction
-            operation.
-          </p>
-        </motion.div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((f, i) => (
-            <motion.div
-              key={f.title}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
-            >
-              <Card
-                className="h-full card-shadow border-border hover:scale-[1.02] transition-transform"
-                data-ocid={`features.item.${i + 1}`}
-              >
-                <CardContent className="p-6">
-                  <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${f.color}`}
-                  >
-                    <f.icon className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="font-bold text-[#0B2B45] mb-2">{f.title}</h3>
-                  <p className="text-sm text-[#6B7280] leading-relaxed">
-                    {f.desc}
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function MaterialsSection() {
-  return (
-    <section id="materials" className="py-20 bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-14"
-        >
-          <h2 className="text-3xl lg:text-4xl font-bold text-[#0B2B45] mb-3">
-            Material Management Dashboard
-          </h2>
-          <p className="text-[#6B7280] max-w-xl mx-auto">
-            Complete visibility into material stock, consumption, and reorder
-            thresholds.
-          </p>
-        </motion.div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <Card
-              className="card-shadow border-border"
-              data-ocid="materials.table"
-            >
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg text-[#0B2B45]">
-                  Stock Overview
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow style={{ backgroundColor: "#F4F7FA" }}>
-                      <TableHead className="text-xs font-semibold text-[#6B7280] uppercase">
-                        Material
-                      </TableHead>
-                      <TableHead className="text-xs font-semibold text-[#6B7280] uppercase">
-                        Current Stock
-                      </TableHead>
-                      <TableHead className="text-xs font-semibold text-[#6B7280] uppercase">
-                        Reorder Level
-                      </TableHead>
-                      <TableHead className="text-xs font-semibold text-[#6B7280] uppercase">
-                        Status
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {materialData.map((m, i) => (
-                      <TableRow
-                        key={m.name}
-                        data-ocid={`materials.row.${i + 1}`}
-                        style={
-                          m.stock < m.reorder
-                            ? { backgroundColor: "rgba(239,68,68,0.06)" }
-                            : {}
-                        }
-                      >
-                        <TableCell className="font-medium text-sm">
-                          {m.name}
-                        </TableCell>
-                        <TableCell
-                          className={`text-sm font-semibold ${m.stock < m.reorder ? "text-red-600" : "text-[#0B2B45]"}`}
-                        >
-                          {m.stock}
-                        </TableCell>
-                        <TableCell className="text-sm text-[#6B7280]">
-                          {m.reorder}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className="text-[10px] px-1.5 py-0"
-                            style={
-                              m.stock < m.reorder
-                                ? {
-                                    backgroundColor: "rgba(239,68,68,0.15)",
-                                    color: "#DC2626",
-                                  }
-                                : {
-                                    backgroundColor: "rgba(31,166,163,0.1)",
-                                    color: "#1FA6A3",
-                                  }
-                            }
-                          >
-                            {m.stock < m.reorder ? "LOW" : "OK"}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <Card
-              className="card-shadow border-border h-full"
-              data-ocid="materials.chart"
-            >
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg text-[#0B2B45]">
-                  Stock vs Reorder Level
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart
-                    data={materialData}
-                    margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E6EBF2" />
-                    <XAxis
-                      dataKey="name"
-                      tick={{ fontSize: 12, fill: "#6B7280" }}
-                    />
-                    <YAxis tick={{ fontSize: 12, fill: "#6B7280" }} />
-                    <Tooltip
-                      contentStyle={{
-                        borderRadius: "8px",
-                        border: "1px solid #E6EBF2",
-                      }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: "12px" }} />
-                    <Bar
-                      dataKey="stock"
-                      name="Current Stock"
-                      radius={[4, 4, 0, 0]}
-                    >
-                      {materialData.map((entry) => (
-                        <Cell
-                          key={`stock-${entry.name}`}
-                          fill={
-                            entry.stock < entry.reorder ? "#DC2626" : "#0B2B45"
-                          }
-                        />
-                      ))}
-                    </Bar>
-                    <Bar
-                      dataKey="reorder"
-                      name="Reorder Level"
-                      fill="#F28C2A"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function LabourSection() {
-  return (
-    <section
-      id="labour"
-      className="py-20"
-      style={{ backgroundColor: "#F4F7FA" }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-14"
-        >
-          <h2 className="text-3xl lg:text-4xl font-bold text-[#0B2B45] mb-3">
-            Labour &amp; Attendance Tracking
-          </h2>
-          <p className="text-[#6B7280] max-w-xl mx-auto">
-            GPS-verified attendance with automated daily wage computation and
-            ledger management.
-          </p>
-        </motion.div>
-        <Card className="card-shadow border-border" data-ocid="labour.table">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg text-[#0B2B45]">
-                Today's Attendance
-              </CardTitle>
-              <Badge
-                style={{
-                  backgroundColor: "rgba(31,166,163,0.1)",
-                  color: "#1FA6A3",
-                }}
-              >
-                Mar 25, 2026
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow style={{ backgroundColor: "#F4F7FA" }}>
-                  <TableHead className="text-xs font-semibold text-[#6B7280] uppercase">
-                    Worker
-                  </TableHead>
-                  <TableHead className="text-xs font-semibold text-[#6B7280] uppercase">
-                    Clock In
-                  </TableHead>
-                  <TableHead className="text-xs font-semibold text-[#6B7280] uppercase">
-                    Clock Out
-                  </TableHead>
-                  <TableHead className="text-xs font-semibold text-[#6B7280] uppercase">
-                    GPS
-                  </TableHead>
-                  <TableHead className="text-xs font-semibold text-[#6B7280] uppercase">
-                    Daily Wage
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {workers.map((w, i) => (
-                  <TableRow key={w.name} data-ocid={`labour.item.${i + 1}`}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                          style={{
-                            backgroundColor:
-                              i % 2 === 0 ? "#0B2B45" : "#1FA6A3",
-                          }}
-                        >
-                          {w.initials}
-                        </div>
-                        <span className="text-sm font-medium text-[#0B2B45]">
-                          {w.name}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-[#6B7280]">
-                      {w.clockIn}
-                    </TableCell>
-                    <TableCell className="text-sm text-[#6B7280]">
-                      {w.clockOut}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        className="text-[10px] px-1.5 py-0"
-                        style={{
-                          backgroundColor: "rgba(31,166,163,0.1)",
-                          color: "#1FA6A3",
-                        }}
-                      >
-                        ✓ Verified
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm font-semibold text-[#0B2B45]">
-                      {w.wage}
-                    </TableCell>
-                  </TableRow>
                 ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
-    </section>
-  );
-}
-
-function TeamSection() {
-  const members = [
-    {
-      name: "Mohamed Asif M",
-      role: "Chairman",
-      email: "mohamedasif.ce23@krct.ac.in",
-      image:
-        "/assets/uploads/mohamed_asif_m-019d2137-fc1c-725f-850e-007b024c42ab-2.png",
-    },
-    {
-      name: "Raksha Manikandan M",
-      role: "President",
-      email: "rakshamanikandan.ce23@krct.ac.in",
-      image:
-        "/assets/uploads/raksha_manikandan_m-019d2138-02c2-7368-a7b5-e0fae8e9a060-4.png",
-    },
-    {
-      name: "Kumaran Bala",
-      role: "Vice President",
-      email: "kumaranbala.ce23@krct.ac.in",
-      image:
-        "/assets/uploads/kumaran_bala-019d2137-fc07-76ee-9225-b8a357eb3e63-1.png",
-    },
-    {
-      name: "Aswin M",
-      role: "CEO",
-      email: "aswin.ce23@krct.ac.in",
-      image:
-        "/assets/uploads/aswin_m-019d2137-fd4c-77ab-b14a-5efea6ad48a2-3.png",
-    },
-  ];
-  return (
-    <section id="team" style={{ background: "#0B2B45" }} className="py-20 px-4">
-      <div className="max-w-5xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-14"
-        >
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
-            Meet the Team
-          </h2>
-          <p className="text-[#93A4B5] text-lg">
-            The developers behind ConstructManager Pro
-          </p>
-        </motion.div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {members.map((member, i) => (
-            <motion.div
-              key={member.email}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="bg-white rounded-xl shadow-lg p-6 flex flex-col items-center text-center"
-              data-ocid={`team.item.${i + 1}`}
-            >
-              <img
-                src={member.image}
-                alt={member.name}
-                className="w-24 h-24 rounded-full object-cover object-top mx-auto border-4 border-[#F28C2A] mb-4"
-              />
-              <h3 className="font-bold text-[#0B2B45] text-base mb-1">
-                {member.name}
-              </h3>
-              <p className="text-[#F28C2A] font-semibold text-sm mb-3">
-                {member.role}
-              </p>
-              <a
-                href={`mailto:${member.email}`}
-                className="text-[#1FA6A3] text-xs hover:underline break-all"
-              >
-                {member.email}
-              </a>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Footer() {
-  const year = new Date().getFullYear();
-  const hostname =
-    typeof window !== "undefined" ? window.location.hostname : "";
-  return (
-    <footer style={{ backgroundColor: "#071E30" }} className="text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-10">
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-9 h-9 rounded-lg bg-[#F28C2A] flex items-center justify-center">
-                <HardHat className="w-5 h-5 text-white" />
               </div>
-              <span className="text-white font-bold text-base">
-                ConstructManager Pro
-              </span>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="register">
+          <form onSubmit={handleRegister} className="space-y-3">
+            <div>
+              <Label>Full Name</Label>
+              <Input
+                value={regName}
+                onChange={(e) => setRegName(e.target.value)}
+                placeholder="Your name"
+                required
+                className="mt-1"
+              />
             </div>
-            <p className="text-[#93A4B5] text-sm leading-relaxed">
-              Empowering construction sites with digital transparency.
-            </p>
-          </div>
-          <div>
-            <h4 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">
-              Quick Links
-            </h4>
-            <ul className="space-y-2">
-              {navLinks.map((l) => (
-                <li key={l.href}>
-                  <a
-                    href={l.href}
-                    className="text-[#93A4B5] text-sm hover:text-white transition-colors"
+            <div>
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={regEmail}
+                onChange={(e) => setRegEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Password</Label>
+              <div className="relative mt-1">
+                <Input
+                  type={showRegPw ? "text" : "password"}
+                  value={regPw}
+                  onChange={(e) => setRegPw(e.target.value)}
+                  placeholder="Min. 6 chars"
+                  required
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowRegPw(!showRegPw)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                >
+                  {showRegPw ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+            <div>
+              <Label>Confirm Password</Label>
+              <div className="relative mt-1">
+                <Input
+                  type={showRegConfirm ? "text" : "password"}
+                  value={regConfirm}
+                  onChange={(e) => setRegConfirm(e.target.value)}
+                  placeholder="Repeat password"
+                  required
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowRegConfirm(!showRegConfirm)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                >
+                  {showRegConfirm ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+            <div>
+              <Label>Role</Label>
+              <div className="grid grid-cols-2 gap-1.5 mt-1">
+                {ROLES.map((r) => (
+                  <button
+                    key={r.value}
+                    type="button"
+                    onClick={() => setRegRole(r.value)}
+                    className="px-2 py-2 rounded-lg border text-xs font-medium transition-all"
+                    style={
+                      regRole === r.value
+                        ? {
+                            borderColor: r.color,
+                            backgroundColor: `${r.color}10`,
+                            color: r.color,
+                          }
+                        : { borderColor: "#e2e8f0", color: "#0f172a" }
+                    }
                   >
-                    {l.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-semibold text-white mb-4 text-sm uppercase tracking-wider">
-              Contact
-            </h4>
-            <ul className="space-y-2">
-              {[
-                {
-                  name: "Mohamed Asif M",
-                  email: "mohamedasif.ce23@krct.ac.in",
-                },
-                { name: "Kumaran Bala", email: "kumaranbala.ce23@krct.ac.in" },
-                { name: "Aswin M", email: "aswin.ce23@krct.ac.in" },
-                {
-                  name: "Raksha Manikandan M",
-                  email: "rakshamanikandan.ce23@krct.ac.in",
-                },
-              ].map((c) => (
-                <li key={c.email}>
-                  <a
-                    href={`mailto:${c.email}`}
-                    className="text-[#93A4B5] text-xs hover:text-white transition-colors"
-                  >
-                    {c.email}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-[#93A4B5] text-sm">
-            © {year}. Built with ❤️ using{" "}
-            <a
-              href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(hostname)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#F28C2A] hover:underline"
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Button
+              type="submit"
+              className="w-full bg-[#f97316] hover:bg-[#ea6c10] text-white"
+              disabled={regLoading}
             >
-              caffeine.ai
-            </a>
-          </p>
-          <div className="flex gap-3">
-            <Link to="/login">
-              <Button
-                size="sm"
-                variant="outline"
-                className="rounded-full border-[#93A4B5]/40 text-[#93A4B5] bg-transparent hover:text-white"
-              >
-                Login
-              </Button>
-            </Link>
-            <Link to="/signup">
-              <Button
-                size="sm"
-                className="rounded-full"
-                style={{ backgroundColor: "#F28C2A", color: "white" }}
-              >
-                Sign Up
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    </footer>
+              {regLoading ? "Creating..." : "Create Account"}
+            </Button>
+          </form>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen">
-      <Navbar />
-      <main>
-        <HeroSection />
-        <RolesSection />
-        <MaterialsSection />
-        <LabourSection />
-        <FeaturesSection />
-        <TeamSection />
-      </main>
-      <Footer />
+    <div className="min-h-screen bg-[#f1f5f9]">
+      {/* Navbar */}
+      <header className="bg-[#0f172a] text-white px-6 py-4 sticky top-0 z-20">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-[#f97316] rounded-lg flex items-center justify-center">
+              <HardHat className="w-4 h-4 text-white" />
+            </div>
+            <span className="font-bold">
+              ConstructManager <span className="text-[#f97316]">Pro</span>
+            </span>
+            <a
+              href="https://github.com"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Badge className="bg-[#f97316]/20 text-[#f97316] border border-[#f97316]/30 hover:bg-[#f97316]/30 cursor-pointer">
+                <Github className="w-3 h-3 mr-1" /> Open Source
+              </Badge>
+            </a>
+          </div>
+          <nav className="flex items-center gap-2">
+            <Link to="/user-manual">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-slate-400 hover:text-white hidden sm:flex"
+              >
+                <BookOpen className="w-4 h-4 mr-1" />
+                Manual
+              </Button>
+            </Link>
+            <Link to="/demo">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-slate-600 text-slate-300 hover:border-[#f97316] hover:text-[#f97316]"
+              >
+                Try Demo
+              </Button>
+            </Link>
+            <Link to="/login">
+              <Button
+                size="sm"
+                className="bg-[#f97316] hover:bg-[#ea6c10] text-white"
+              >
+                Login
+              </Button>
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section className="bg-[#0f172a] text-white py-16 px-6">
+        <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-10 items-center">
+          <div>
+            <Badge className="bg-[#f97316]/20 text-[#f97316] border border-[#f97316]/30 mb-4">
+              Open Source • Free Forever
+            </Badge>
+            <h1 className="text-4xl lg:text-5xl font-bold leading-tight mb-4">
+              Construction Site
+              <br />
+              <span className="text-[#f97316]">Management</span> Made Easy
+            </h1>
+            <p className="text-slate-400 text-lg mb-6">
+              Integrated Material & Labour Management for Construction Sites.
+              Role-based, real-time, and globally accessible.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Link to="/demo">
+                <Button className="bg-[#f97316] hover:bg-[#ea6c10] text-white px-6">
+                  Try Demo
+                </Button>
+              </Link>
+              <Link to="/user-manual">
+                <Button
+                  variant="outline"
+                  className="border-slate-600 text-slate-300 hover:border-white"
+                >
+                  View Manual
+                </Button>
+              </Link>
+            </div>
+            <div className="mt-6 flex flex-wrap gap-3">
+              {[
+                "Role-Based Access",
+                "Real-time Updates",
+                "Alphabetical Inventory",
+                "GPS Attendance",
+              ].map((f) => (
+                <span
+                  key={f}
+                  className="flex items-center gap-1 text-xs text-slate-400"
+                >
+                  <CheckCircle className="w-3 h-3 text-[#f97316]" />
+                  {f}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-center lg:justify-end">
+            <AuthSection />
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section className="py-16 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold text-[#0f172a] mb-2">
+              Everything a construction team needs
+            </h2>
+            <p className="text-slate-500">
+              Manage labour, materials, and progress from a single platform.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {FEATURES.map((f) => {
+              const Icon = f.icon;
+              return (
+                <Card
+                  key={f.title}
+                  className="hover:shadow-md transition-shadow"
+                >
+                  <CardContent className="p-5">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
+                      style={{ backgroundColor: `${f.color}15` }}
+                    >
+                      <Icon className="w-5 h-5" style={{ color: f.color }} />
+                    </div>
+                    <h3 className="font-semibold text-[#0f172a] mb-1">
+                      {f.title}
+                    </h3>
+                    <p className="text-sm text-slate-500">{f.desc}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Demo Preview */}
+      <section className="bg-[#0f172a] py-16 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-8">
+            <Badge className="bg-[#f97316]/20 text-[#f97316] border border-[#f97316]/30 mb-3">
+              Demo Preview
+            </Badge>
+            <h2 className="text-3xl font-bold text-white mb-2">
+              See it in action
+            </h2>
+            <p className="text-slate-400">
+              Real data. Real workflows. No login required.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Material Stock Card */}
+            <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
+              <div className="flex items-center gap-2 mb-3">
+                <Package className="w-4 h-4 text-[#10b981]" />
+                <span className="text-white text-sm font-semibold">
+                  Material Stock
+                </span>
+                <Badge className="ml-auto bg-orange-500/20 text-orange-400 text-xs">
+                  2 Alerts
+                </Badge>
+              </div>
+              <div className="space-y-2">
+                {[
+                  {
+                    name: "Cement (OPC 53)",
+                    stock: 200,
+                    unit: "bags",
+                    ok: true,
+                  },
+                  { name: "Sand (Fine)", stock: 4, unit: "tons", ok: false },
+                  { name: "Steel Bars", stock: 2000, unit: "kg", ok: true },
+                ].map((m) => (
+                  <div
+                    key={m.name}
+                    className="flex items-center justify-between"
+                  >
+                    <span className="text-xs text-slate-300">{m.name}</span>
+                    <Badge
+                      className={`text-xs ${m.ok ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}
+                    >
+                      {m.stock} {m.unit}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Labour Attendance Card */}
+            <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
+              <div className="flex items-center gap-2 mb-3">
+                <Users className="w-4 h-4 text-[#0ea5e9]" />
+                <span className="text-white text-sm font-semibold">
+                  Attendance Today
+                </span>
+                <Badge className="ml-auto bg-blue-500/20 text-blue-400 text-xs">
+                  4/5 Present
+                </Badge>
+              </div>
+              <div className="space-y-2">
+                {[
+                  { name: "Rajesh Kumar", skill: "Mason", present: true },
+                  { name: "Sudhir Singh", skill: "Carpenter", present: true },
+                  { name: "Mohan Lal", skill: "Electrician", present: true },
+                  { name: "Amar Nath", skill: "Plumber", present: false },
+                ].map((w) => (
+                  <div
+                    key={w.name}
+                    className="flex items-center justify-between"
+                  >
+                    <span className="text-xs text-slate-300">
+                      {w.name} — {w.skill}
+                    </span>
+                    <Badge
+                      className={`text-xs ${w.present ? "bg-green-500/20 text-green-400" : "bg-slate-500/20 text-slate-400"}`}
+                    >
+                      {w.present ? "P" : "A"}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Notifications */}
+            <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
+              <div className="flex items-center gap-2 mb-3">
+                <Bell className="w-4 h-4 text-[#f97316]" />
+                <span className="text-white text-sm font-semibold">
+                  Notifications
+                </span>
+                <Badge className="ml-auto bg-red-500/20 text-red-400 text-xs">
+                  3 New
+                </Badge>
+              </div>
+              <div className="space-y-2">
+                {[
+                  { msg: "Sand (Fine) below reorder level", type: "error" },
+                  { msg: "Payroll Week 2 pending approval", type: "warn" },
+                  { msg: "Project Alpha: 45% complete", type: "info" },
+                ].map((n) => (
+                  <div
+                    key={n.msg}
+                    className={`flex items-start gap-2 text-xs rounded-lg p-2 ${n.type === "error" ? "bg-red-500/10 text-red-300" : n.type === "warn" ? "bg-yellow-500/10 text-yellow-300" : "bg-blue-500/10 text-blue-300"}`}
+                  >
+                    <div
+                      className="w-1.5 h-1.5 rounded-full mt-1 flex-shrink-0"
+                      style={{
+                        backgroundColor:
+                          n.type === "error"
+                            ? "#ef4444"
+                            : n.type === "warn"
+                              ? "#f59e0b"
+                              : "#3b82f6",
+                      }}
+                    />
+                    {n.msg}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="text-center mt-6">
+            <Link to="/demo">
+              <Button className="bg-[#f97316] hover:bg-[#ea6c10] text-white px-8">
+                Explore Full Demo →
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Team */}
+      <section className="py-16 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold text-[#0f172a] mb-2">
+              Meet the Team
+            </h2>
+            <p className="text-slate-500">
+              Built with passion by engineering students.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+            {OWNERS.map((o) => (
+              <Card
+                key={o.email}
+                className="text-center hover:shadow-md transition-shadow"
+              >
+                <CardContent className="p-5">
+                  <div className="w-16 h-16 rounded-full bg-slate-200 mx-auto mb-3 overflow-hidden">
+                    <img
+                      src={o.img}
+                      alt={o.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  </div>
+                  <h3 className="font-semibold text-[#0f172a] text-sm">
+                    {o.name}
+                  </h3>
+                  <p className="text-xs text-slate-400 mb-2">{o.role}</p>
+                  <a
+                    href={`mailto:${o.email}`}
+                    className="text-xs text-[#f97316] hover:underline break-all"
+                  >
+                    {o.email}
+                  </a>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Role Cards */}
+      <section className="bg-[#0f172a] py-16 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-white mb-2">
+              Role-Based Access
+            </h2>
+            <p className="text-slate-400">
+              Each role sees only what they need. No clutter, no confusion.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              {
+                role: "Chief Engineer",
+                color: "#f97316",
+                perms: [
+                  "Create projects",
+                  "Manage team",
+                  "Approve payroll",
+                  "Full audit log",
+                ],
+              },
+              {
+                role: "Site Engineer",
+                color: "#0ea5e9",
+                perms: [
+                  "Add workers",
+                  "Mark attendance",
+                  "Update progress",
+                  "Submit payroll",
+                ],
+              },
+              {
+                role: "Materials Engineer",
+                color: "#10b981",
+                perms: [
+                  "Add materials",
+                  "Record GRN",
+                  "Issue materials",
+                  "Monitor stock",
+                ],
+              },
+              {
+                role: "Site Owner",
+                color: "#8b5cf6",
+                perms: [
+                  "View dashboards",
+                  "Review budgets",
+                  "Financial reports",
+                  "Progress overview",
+                ],
+              },
+            ].map((r) => (
+              <div
+                key={r.role}
+                className="bg-white/5 rounded-2xl p-5 border border-white/10"
+              >
+                <div
+                  className="w-8 h-8 rounded-xl flex items-center justify-center mb-3"
+                  style={{ backgroundColor: `${r.color}20` }}
+                >
+                  <Shield className="w-4 h-4" style={{ color: r.color }} />
+                </div>
+                <h3 className="font-semibold text-white text-sm mb-2">
+                  {r.role}
+                </h3>
+                <ul className="space-y-1">
+                  {r.perms.map((p) => (
+                    <li
+                      key={p}
+                      className="flex items-center gap-1.5 text-xs text-slate-400"
+                    >
+                      <CheckCircle
+                        className="w-3 h-3"
+                        style={{ color: r.color }}
+                      />
+                      {p}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-[#0f172a] border-t border-white/10 py-8 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 bg-[#f97316] rounded-lg flex items-center justify-center">
+                <HardHat className="w-4 h-4 text-white" />
+              </div>
+              <span className="font-bold text-white">ConstructManager Pro</span>
+              <Badge className="bg-[#f97316]/20 text-[#f97316] border border-[#f97316]/30 text-xs">
+                Open Source
+              </Badge>
+            </div>
+            <div className="flex flex-wrap justify-center gap-4 text-xs text-slate-400">
+              {OWNERS.map((o) => (
+                <a
+                  key={o.email}
+                  href={`mailto:${o.email}`}
+                  className="hover:text-[#f97316]"
+                >
+                  {o.email}
+                </a>
+              ))}
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-white/10 text-center text-xs text-slate-500">
+            &copy; {new Date().getFullYear()} ConstructManager Pro &bull; Built
+            with ❤️ using{" "}
+            <a
+              href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#f97316] hover:underline"
+            >
+              caffeine.ai
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

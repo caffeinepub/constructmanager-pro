@@ -1,0 +1,261 @@
+export interface MasterMaterial {
+  name: string;
+  unit: string;
+  usdPrice: number;
+  description?: string;
+}
+
+export const MASTER_MATERIALS: MasterMaterial[] = [
+  {
+    name: "Aggregate (Coarse)",
+    unit: "tons",
+    usdPrice: 45,
+    description: "20mm crushed aggregate for concrete",
+  },
+  {
+    name: "Aggregate (Fine)",
+    unit: "tons",
+    usdPrice: 35,
+    description: "Fine aggregate for mortar",
+  },
+  {
+    name: "Bitumen",
+    unit: "barrels",
+    usdPrice: 85,
+    description: "Grade 60/70 bitumen for road work",
+  },
+  {
+    name: "Bricks (Clay)",
+    unit: "thousands",
+    usdPrice: 350,
+    description: "Standard red clay bricks",
+  },
+  {
+    name: "Bricks (Fly Ash)",
+    unit: "thousands",
+    usdPrice: 280,
+    description: "Eco-friendly fly ash bricks",
+  },
+  {
+    name: "Cement (OPC 43)",
+    unit: "bags",
+    usdPrice: 8,
+    description: "Ordinary Portland Cement 43 grade",
+  },
+  {
+    name: "Cement (OPC 53)",
+    unit: "bags",
+    usdPrice: 9,
+    description: "Ordinary Portland Cement 53 grade",
+  },
+  {
+    name: "Cement (PPC)",
+    unit: "bags",
+    usdPrice: 8.5,
+    description: "Portland Pozzolana Cement",
+  },
+  {
+    name: "Concrete Blocks",
+    unit: "pieces",
+    usdPrice: 2.5,
+    description: "Hollow/solid concrete blocks",
+  },
+  {
+    name: "Copper Wire",
+    unit: "kg",
+    usdPrice: 9.5,
+    description: "Electrical copper wiring",
+  },
+  {
+    name: "Crushed Stone",
+    unit: "tons",
+    usdPrice: 30,
+    description: "6mm-20mm crushed stone",
+  },
+  {
+    name: "Door Frames (Teak)",
+    unit: "pieces",
+    usdPrice: 150,
+    description: "Teak wood door frames",
+  },
+  {
+    name: "Electrical Conduit",
+    unit: "meters",
+    usdPrice: 3,
+    description: "PVC conduit for electrical wiring",
+  },
+  {
+    name: "Geotextile Fabric",
+    unit: "sq meters",
+    usdPrice: 2,
+    description: "Woven geotextile for drainage",
+  },
+  {
+    name: "Glass (Float)",
+    unit: "sq meters",
+    usdPrice: 18,
+    description: "Clear float glass 6mm",
+  },
+  {
+    name: "GI Pipes",
+    unit: "meters",
+    usdPrice: 12,
+    description: "Galvanized iron pipes",
+  },
+  {
+    name: "Granite Tiles",
+    unit: "sq meters",
+    usdPrice: 45,
+    description: "Polished granite flooring tiles",
+  },
+  {
+    name: "Gravel",
+    unit: "tons",
+    usdPrice: 25,
+    description: "River gravel for construction",
+  },
+  {
+    name: "Gypsum Board",
+    unit: "sheets",
+    usdPrice: 14,
+    description: "12mm gypsum drywall board",
+  },
+  {
+    name: "HDPE Pipes",
+    unit: "meters",
+    usdPrice: 8,
+    description: "High density polyethylene pipes",
+  },
+  {
+    name: "Marble Tiles",
+    unit: "sq meters",
+    usdPrice: 60,
+    description: "White marble flooring tiles",
+  },
+  {
+    name: "Mild Steel Bars (10mm)",
+    unit: "tons",
+    usdPrice: 700,
+    description: "10mm MS reinforcement bars",
+  },
+  {
+    name: "Mild Steel Bars (12mm)",
+    unit: "tons",
+    usdPrice: 700,
+    description: "12mm MS reinforcement bars",
+  },
+  {
+    name: "Mild Steel Bars (16mm)",
+    unit: "tons",
+    usdPrice: 710,
+    description: "16mm MS reinforcement bars",
+  },
+  {
+    name: "Paint (Exterior)",
+    unit: "liters",
+    usdPrice: 6,
+    description: "Weatherproof exterior emulsion",
+  },
+  {
+    name: "Paint (Interior)",
+    unit: "liters",
+    usdPrice: 5,
+    description: "Interior wall emulsion paint",
+  },
+  {
+    name: "PCC Pipes",
+    unit: "meters",
+    usdPrice: 15,
+    description: "Plain cement concrete pipes",
+  },
+  {
+    name: "Plywood (18mm)",
+    unit: "sheets",
+    usdPrice: 35,
+    description: "18mm BWR plywood sheets",
+  },
+  {
+    name: "PVC Pipes",
+    unit: "meters",
+    usdPrice: 5,
+    description: "PVC water supply pipes",
+  },
+  {
+    name: "River Sand",
+    unit: "tons",
+    usdPrice: 40,
+    description: "Natural river sand",
+  },
+  {
+    name: "Roofing Sheets (GI)",
+    unit: "sq meters",
+    usdPrice: 12,
+    description: "Galvanized iron roofing sheets",
+  },
+  {
+    name: "Sand (M-Sand)",
+    unit: "tons",
+    usdPrice: 30,
+    description: "Manufactured sand",
+  },
+  {
+    name: "Shuttering Plates",
+    unit: "sq meters",
+    usdPrice: 8,
+    description: "Steel formwork shuttering",
+  },
+  {
+    name: "Steel Channels",
+    unit: "tons",
+    usdPrice: 750,
+    description: "C-channel structural steel",
+  },
+  {
+    name: "Steel Wire Mesh",
+    unit: "sq meters",
+    usdPrice: 6,
+    description: "Welded wire mesh for slabs",
+  },
+  {
+    name: "Stone Dust",
+    unit: "tons",
+    usdPrice: 20,
+    description: "Stone dust filler",
+  },
+  {
+    name: "TMT Steel Bars",
+    unit: "tons",
+    usdPrice: 680,
+    description: "TMT Fe500 steel bars",
+  },
+  {
+    name: "Tiles (Ceramic)",
+    unit: "sq meters",
+    usdPrice: 15,
+    description: "Ceramic wall/floor tiles",
+  },
+  {
+    name: "Tiles (Vitrified)",
+    unit: "sq meters",
+    usdPrice: 25,
+    description: "Vitrified floor tiles",
+  },
+  {
+    name: "Waterproofing Compound",
+    unit: "liters",
+    usdPrice: 12,
+    description: "SBR waterproofing compound",
+  },
+  {
+    name: "White Cement",
+    unit: "bags",
+    usdPrice: 15,
+    description: "White OPC for finishing",
+  },
+  {
+    name: "Wood (Teak)",
+    unit: "cubic feet",
+    usdPrice: 80,
+    description: "Teak wood for frames/doors",
+  },
+];
