@@ -108,31 +108,28 @@ export default function DashboardLayout({
   }
 
   const SidebarContent = () => (
-    <div
-      className="flex flex-col h-full"
-      style={{ backgroundColor: "#0f172a" }}
-    >
+    <div className="flex flex-col h-full bg-white border-r border-gray-200">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 h-16 border-b border-white/10">
+      <div className="flex items-center gap-3 px-5 h-16 border-b border-gray-200">
         <div className="w-8 h-8 rounded-lg bg-[#f97316] flex items-center justify-center flex-shrink-0">
           <HardHat className="w-4 h-4 text-white" />
         </div>
-        <span className="text-white font-bold text-sm">
+        <span className="text-[#1a1a1a] font-bold text-sm">
           ConstructManager <span className="text-[#f97316]">Pro</span>
         </span>
       </div>
 
       {/* Project context */}
       {activeProject && (
-        <div className="px-3 py-3 border-b border-white/10">
-          <div className="bg-white/5 rounded-lg px-3 py-2">
+        <div className="px-3 py-3 border-b border-gray-200">
+          <div className="bg-orange-50 rounded-lg px-3 py-2">
             <div className="flex items-center gap-2 mb-1">
               <Building2 className="w-3 h-3 text-[#f97316]" />
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider">
+              <span className="text-[10px] text-gray-500 uppercase tracking-wider">
                 Active Project
               </span>
             </div>
-            <p className="text-white text-xs font-semibold truncate">
+            <p className="text-[#1a1a1a] text-xs font-semibold truncate">
               {activeProject.name}
             </p>
             <button
@@ -156,14 +153,15 @@ export default function DashboardLayout({
               key={item.tab}
               type="button"
               onClick={() => onTabChange?.(item.tab)}
+              data-ocid={`sidebar.${item.tab}.link`}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
               style={
                 isActive
                   ? {
-                      backgroundColor: "rgba(249,115,22,0.15)",
+                      backgroundColor: "rgba(249,115,22,0.12)",
                       color: "#f97316",
                     }
-                  : { color: "#94a3b8" }
+                  : { color: "#4a5568" }
               }
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
@@ -175,12 +173,12 @@ export default function DashboardLayout({
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-4 border-t border-white/10 space-y-1">
+      <div className="px-3 py-4 border-t border-gray-200 space-y-1">
         <Link to="/user-manual">
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start text-slate-400 hover:text-white hover:bg-white/5"
+            className="w-full justify-start text-gray-500 hover:text-[#1a1a1a] hover:bg-gray-100"
             data-ocid="sidebar.user_manual.link"
           >
             <HelpCircle className="w-4 h-4 mr-2" /> User Manual
@@ -189,7 +187,7 @@ export default function DashboardLayout({
         <Button
           variant="ghost"
           size="sm"
-          className="w-full justify-start text-slate-400 hover:text-white hover:bg-white/5"
+          className="w-full justify-start text-gray-500 hover:text-[#1a1a1a] hover:bg-gray-100"
           onClick={() => setPwOpen(true)}
         >
           <Settings className="w-4 h-4 mr-2" /> Settings
@@ -198,7 +196,7 @@ export default function DashboardLayout({
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start text-slate-400 hover:text-white hover:bg-white/5"
+            className="w-full justify-start text-gray-500 hover:text-[#1a1a1a] hover:bg-gray-100"
           >
             <Home className="w-4 h-4 mr-2" /> Home
           </Button>
@@ -206,7 +204,7 @@ export default function DashboardLayout({
         <Button
           variant="ghost"
           size="sm"
-          className="w-full justify-start text-slate-400 hover:text-red-400 hover:bg-white/5"
+          className="w-full justify-start text-gray-500 hover:text-red-500 hover:bg-red-50"
           onClick={handleLogout}
           data-ocid="sidebar.logout_button"
         >
@@ -217,7 +215,7 @@ export default function DashboardLayout({
   );
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: "#f1f5f9" }}>
+    <div className="min-h-screen flex bg-[#f4f5f7]">
       {/* Desktop sidebar */}
       <aside className="hidden md:flex w-64 flex-col flex-shrink-0">
         <SidebarContent />
@@ -225,14 +223,14 @@ export default function DashboardLayout({
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 flex-shrink-0">
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             {/* Mobile sidebar */}
             <Sheet>
               <SheetTrigger asChild>
                 <button
                   type="button"
-                  className="md:hidden p-1.5 rounded-lg text-slate-500 hover:bg-slate-100"
+                  className="md:hidden p-1.5 rounded-lg text-gray-500 hover:bg-gray-100"
                 >
                   <Menu className="w-5 h-5" />
                 </button>
@@ -242,14 +240,14 @@ export default function DashboardLayout({
               </SheetContent>
             </Sheet>
             {title && (
-              <h1 className="font-bold text-[#0f172a] text-lg hidden sm:block">
+              <h1 className="font-bold text-[#1a1a1a] text-lg hidden sm:block">
                 {title}
               </h1>
             )}
             {activeProject && (
               <div className="flex items-center gap-1.5">
                 <Building2 className="w-4 h-4 text-[#f97316]" />
-                <span className="text-sm font-medium text-slate-600 hidden sm:block">
+                <span className="text-sm font-medium text-gray-600 hidden sm:block">
                   {activeProject.name}
                 </span>
               </div>
@@ -260,7 +258,7 @@ export default function DashboardLayout({
             <Link to="/user-manual">
               <button
                 type="button"
-                className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-[#f97316] transition-colors"
+                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-[#f97316] transition-colors"
                 title="User Manual"
                 data-ocid="topbar.user_manual.link"
               >
@@ -272,7 +270,7 @@ export default function DashboardLayout({
             <button
               type="button"
               onClick={() => setNotifOpen(true)}
-              className="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100"
+              className="relative p-2 rounded-lg text-gray-500 hover:bg-gray-100"
               data-ocid="topbar.notifications.button"
             >
               <Bell className="w-5 h-5" />
@@ -283,7 +281,7 @@ export default function DashboardLayout({
             <button
               type="button"
               onClick={() => setChatOpen(true)}
-              className="relative p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-[#f97316]"
+              className="relative p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-[#f97316]"
               title="Project Chat"
               data-ocid="topbar.chat.button"
             >
@@ -292,13 +290,13 @@ export default function DashboardLayout({
 
             {user && (
               <div className="hidden sm:flex flex-col items-end">
-                <span className="text-sm font-semibold text-[#0f172a]">
+                <span className="text-sm font-semibold text-[#1a1a1a]">
                   {user.name}
                 </span>
                 <Badge
                   className="text-[10px] px-2 py-0"
                   style={{
-                    backgroundColor: `${badgeColor}20`,
+                    backgroundColor: `${badgeColor}18`,
                     color: badgeColor,
                   }}
                 >
@@ -309,7 +307,7 @@ export default function DashboardLayout({
             <Button
               variant="ghost"
               size="sm"
-              className="text-slate-500 hover:text-red-500"
+              className="text-gray-500 hover:text-[#f97316]"
               onClick={() => setPwOpen(true)}
             >
               <Settings className="w-4 h-4" />
@@ -317,7 +315,7 @@ export default function DashboardLayout({
             <Button
               variant="ghost"
               size="sm"
-              className="text-slate-500 hover:text-red-500"
+              className="text-gray-500 hover:text-red-500"
               onClick={handleLogout}
               data-ocid="topbar.logout_button"
             >

@@ -85,7 +85,7 @@ export default function SignUpPage() {
 
   return (
     <div className="min-h-screen bg-[#f1f5f9] flex flex-col">
-      <header className="bg-[#0f172a] text-white px-6 py-4">
+      <header className="bg-white border-b border-gray-200 text-[#1a1a1a] px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-[#f97316] rounded-lg flex items-center justify-center">
@@ -95,7 +95,10 @@ export default function SignUpPage() {
               ConstructManager <span className="text-[#f97316]">Pro</span>
             </span>
           </Link>
-          <Link to="/login" className="text-sm text-slate-400 hover:text-white">
+          <Link
+            to="/login"
+            className="text-sm text-gray-500 hover:text-[#1a1a1a]"
+          >
             Sign In →
           </Link>
         </div>

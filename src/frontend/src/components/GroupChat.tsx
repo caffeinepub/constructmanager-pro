@@ -102,8 +102,8 @@ export default function GroupChat({ open, onClose }: GroupChatProps) {
         side="right"
         className="w-full sm:w-[420px] p-0 flex flex-col"
       >
-        <SheetHeader className="px-4 py-3 border-b border-slate-200 bg-[#0f172a]">
-          <SheetTitle className="text-white flex items-center gap-2">
+        <SheetHeader className="px-4 py-3 border-b border-gray-200 bg-white">
+          <SheetTitle className="text-[#1a1a1a] flex items-center gap-2">
             <MessageSquare className="w-4 h-4 text-[#f97316]" />
             {activeProject?.name ?? "Project"} Chat
           </SheetTitle>
@@ -240,7 +240,7 @@ export default function GroupChat({ open, onClose }: GroupChatProps) {
                       <div
                         className={`rounded-2xl px-3 py-2 text-sm ${
                           isMe
-                            ? "bg-[#1e3a5f] text-white rounded-tr-sm"
+                            ? "bg-[#f97316] text-white rounded-tr-sm"
                             : "bg-white border border-slate-200 text-slate-800 rounded-tl-sm"
                         }`}
                       >

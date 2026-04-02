@@ -187,7 +187,7 @@ export default function ProjectsDashboard() {
   return (
     <div className="min-h-screen bg-[#f1f5f9]">
       {/* Header */}
-      <header className="bg-[#0f172a] text-white px-6 py-4 sticky top-0 z-10">
+      <header className="bg-white border-b border-gray-200 text-[#1a1a1a] px-6 py-4 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-[#f97316] rounded-lg flex items-center justify-center">
@@ -209,7 +209,7 @@ export default function ProjectsDashboard() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-slate-400 hover:text-white"
+                className="text-gray-500 hover:text-[#1a1a1a]"
               >
                 <HelpCircle className="w-4 h-4 mr-1" /> Manual
               </Button>
@@ -313,7 +313,7 @@ export default function ProjectsDashboard() {
                   data-ocid={`projects.item.${idx + 1}`}
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#0f172a] flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
                       <Building2 className="w-5 h-5 text-[#f97316]" />
                     </div>
                     <div className="flex items-center gap-1.5">

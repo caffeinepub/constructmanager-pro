@@ -270,11 +270,11 @@ export default function UserManualPage() {
   return (
     <div className="min-h-screen bg-[#f1f5f9]">
       {/* Header */}
-      <header className="bg-[#0f172a] text-white px-6 py-4">
+      <header className="bg-white border-b border-gray-200 text-[#1a1a1a] px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center gap-4">
           <Link
             to="/"
-            className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+            className="flex items-center gap-2 text-gray-500 hover:text-[#1a1a1a] transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm">Home</span>
@@ -312,7 +312,7 @@ export default function UserManualPage() {
           <TabsList className="mb-6 bg-white border border-slate-200 p-1 flex-wrap h-auto gap-1">
             <TabsTrigger
               value="quickstart"
-              className="text-xs data-[state=active]:bg-[#0f172a] data-[state=active]:text-white"
+              className="text-xs data-[state=active]:bg-[#f97316] data-[state=active]:text-white"
               data-ocid="manual.quickstart.tab"
             >
               🚀 Quick Start
@@ -363,11 +363,11 @@ export default function UserManualPage() {
                 {QUICK_START.map((s) => (
                   <StepCard key={s.num} step={s} />
                 ))}
-                <div className="mt-4 bg-[#0f172a] rounded-xl p-4 text-white">
+                <div className="mt-4 bg-[#f97316] rounded-xl p-4 text-white">
                   <p className="text-sm font-semibold mb-1">
                     📌 Demo Credentials
                   </p>
-                  <p className="text-xs text-slate-300 mb-2">
+                  <p className="text-xs text-white/80 mb-2">
                     Want to explore without signing up? Use these demo accounts:
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -404,8 +404,8 @@ export default function UserManualPage() {
                         >
                           {c.role}
                         </p>
-                        <p className="text-xs text-slate-300">{c.email}</p>
-                        <p className="text-xs font-mono text-slate-400">
+                        <p className="text-xs text-white/80">{c.email}</p>
+                        <p className="text-xs font-mono text-white/70">
                           {c.pw}
                         </p>
                       </div>

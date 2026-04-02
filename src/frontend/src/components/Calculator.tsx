@@ -91,7 +91,7 @@ export default function Calculator() {
           style={{ width: 220 }}
         >
           {/* Header */}
-          <div className="bg-[#0f172a] px-3 py-2 flex items-center justify-between">
+          <div className="bg-gray-900 px-3 py-2 flex items-center justify-between">
             <span className="text-white text-xs font-semibold">
               &#x1F522; Calculator
             </span>
@@ -105,7 +105,7 @@ export default function Calculator() {
           </div>
 
           {/* Display */}
-          <div className="bg-slate-900 px-3 py-2 text-right">
+          <div className="bg-gray-900 px-3 py-2 text-right">
             {expression && (
               <div className="text-slate-400 text-xs truncate">
                 {expression}

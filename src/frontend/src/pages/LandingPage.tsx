@@ -402,7 +402,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#f1f5f9]">
       {/* Navbar */}
-      <header className="bg-[#0f172a] text-white px-6 py-4 sticky top-0 z-20">
+      <header className="bg-white border-b border-gray-200 text-[#1a1a1a] px-6 py-4 sticky top-0 z-20">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-[#f97316] rounded-lg flex items-center justify-center">
@@ -426,7 +426,7 @@ export default function LandingPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-slate-400 hover:text-white hidden sm:flex"
+                className="text-gray-600 hover:text-[#1a1a1a] hidden sm:flex"
               >
                 <BookOpen className="w-4 h-4 mr-1" />
                 Manual
@@ -436,7 +436,7 @@ export default function LandingPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-slate-600 text-slate-300 hover:border-[#f97316] hover:text-[#f97316]"
+                className="border-gray-300 text-gray-600 hover:border-[#f97316] hover:text-[#f97316]"
               >
                 Try Demo
               </Button>
@@ -454,7 +454,7 @@ export default function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="bg-[#0f172a] text-white py-16 px-6">
+      <section className="bg-[#f4f5f7] py-16 px-6">
         <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-10 items-center">
           <div>
             <Badge className="bg-[#f97316]/20 text-[#f97316] border border-[#f97316]/30 mb-4">
@@ -465,7 +465,7 @@ export default function LandingPage() {
               <br />
               <span className="text-[#f97316]">Management</span> Made Easy
             </h1>
-            <p className="text-slate-400 text-lg mb-6">
+            <p className="text-gray-600 text-lg mb-6">
               Integrated Material & Labour Management for Construction Sites.
               Role-based, real-time, and globally accessible.
             </p>
@@ -478,7 +478,7 @@ export default function LandingPage() {
               <Link to="/user-manual">
                 <Button
                   variant="outline"
-                  className="border-slate-600 text-slate-300 hover:border-white"
+                  className="border-gray-300 text-gray-600 hover:border-[#1a1a1a]"
                 >
                   View Manual
                 </Button>
@@ -493,7 +493,7 @@ export default function LandingPage() {
               ].map((f) => (
                 <span
                   key={f}
-                  className="flex items-center gap-1 text-xs text-slate-400"
+                  className="flex items-center gap-1 text-xs text-gray-500"
                 >
                   <CheckCircle className="w-3 h-3 text-[#f97316]" />
                   {f}
@@ -546,25 +546,25 @@ export default function LandingPage() {
       </section>
 
       {/* Demo Preview */}
-      <section className="bg-[#0f172a] py-16 px-6">
+      <section className="bg-white py-16 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
             <Badge className="bg-[#f97316]/20 text-[#f97316] border border-[#f97316]/30 mb-3">
               Demo Preview
             </Badge>
-            <h2 className="text-3xl font-bold text-white mb-2">
+            <h2 className="text-3xl font-bold text-[#1a1a1a] mb-2">
               See it in action
             </h2>
-            <p className="text-slate-400">
+            <p className="text-gray-500">
               Real data. Real workflows. No login required.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Material Stock Card */}
-            <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
+            <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200">
               <div className="flex items-center gap-2 mb-3">
                 <Package className="w-4 h-4 text-[#10b981]" />
-                <span className="text-white text-sm font-semibold">
+                <span className="text-[#1a1a1a] text-sm font-semibold">
                   Material Stock
                 </span>
                 <Badge className="ml-auto bg-orange-500/20 text-orange-400 text-xs">
@@ -586,7 +586,7 @@ export default function LandingPage() {
                     key={m.name}
                     className="flex items-center justify-between"
                   >
-                    <span className="text-xs text-slate-300">{m.name}</span>
+                    <span className="text-xs text-gray-600">{m.name}</span>
                     <Badge
                       className={`text-xs ${m.ok ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}
                     >
@@ -597,10 +597,10 @@ export default function LandingPage() {
               </div>
             </div>
             {/* Labour Attendance Card */}
-            <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
+            <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200">
               <div className="flex items-center gap-2 mb-3">
                 <Users className="w-4 h-4 text-[#0ea5e9]" />
-                <span className="text-white text-sm font-semibold">
+                <span className="text-[#1a1a1a] text-sm font-semibold">
                   Attendance Today
                 </span>
                 <Badge className="ml-auto bg-blue-500/20 text-blue-400 text-xs">
@@ -618,7 +618,7 @@ export default function LandingPage() {
                     key={w.name}
                     className="flex items-center justify-between"
                   >
-                    <span className="text-xs text-slate-300">
+                    <span className="text-xs text-gray-600">
                       {w.name} — {w.skill}
                     </span>
                     <Badge
@@ -631,10 +631,10 @@ export default function LandingPage() {
               </div>
             </div>
             {/* Notifications */}
-            <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
+            <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200">
               <div className="flex items-center gap-2 mb-3">
                 <Bell className="w-4 h-4 text-[#f97316]" />
-                <span className="text-white text-sm font-semibold">
+                <span className="text-[#1a1a1a] text-sm font-semibold">
                   Notifications
                 </span>
                 <Badge className="ml-auto bg-red-500/20 text-red-400 text-xs">
@@ -724,13 +724,13 @@ export default function LandingPage() {
       </section>
 
       {/* Role Cards */}
-      <section className="bg-[#0f172a] py-16 px-6">
+      <section className="bg-white py-16 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-white mb-2">
+            <h2 className="text-3xl font-bold text-[#1a1a1a] mb-2">
               Role-Based Access
             </h2>
-            <p className="text-slate-400">
+            <p className="text-gray-500">
               Each role sees only what they need. No clutter, no confusion.
             </p>
           </div>
@@ -779,7 +779,7 @@ export default function LandingPage() {
             ].map((r) => (
               <div
                 key={r.role}
-                className="bg-white/5 rounded-2xl p-5 border border-white/10"
+                className="bg-gray-50 rounded-2xl p-5 border border-gray-200"
               >
                 <div
                   className="w-8 h-8 rounded-xl flex items-center justify-center mb-3"
@@ -787,14 +787,14 @@ export default function LandingPage() {
                 >
                   <Shield className="w-4 h-4" style={{ color: r.color }} />
                 </div>
-                <h3 className="font-semibold text-white text-sm mb-2">
+                <h3 className="font-semibold text-[#1a1a1a] text-sm mb-2">
                   {r.role}
                 </h3>
                 <ul className="space-y-1">
                   {r.perms.map((p) => (
                     <li
                       key={p}
-                      className="flex items-center gap-1.5 text-xs text-slate-400"
+                      className="flex items-center gap-1.5 text-xs text-gray-500"
                     >
                       <CheckCircle
                         className="w-3 h-3"
@@ -811,7 +811,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#0f172a] border-t border-white/10 py-8 px-6">
+      <footer className="bg-[#1a1a1a] py-8 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">

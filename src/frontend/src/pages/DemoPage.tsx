@@ -612,7 +612,7 @@ export default function DemoPage() {
       </div>
 
       {/* Header */}
-      <header className="bg-[#0f172a] text-white px-6 py-4">
+      <header className="bg-white border-b border-gray-200 text-[#1a1a1a] px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-[#f97316] rounded-lg flex items-center justify-center">
@@ -635,7 +635,7 @@ export default function DemoPage() {
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-[#0f172a] mb-1">
+          <h1 className="text-2xl font-bold text-[#1a1a1a] mb-1">
             Interactive Demo
           </h1>
           <p className="text-slate-500 text-sm">
@@ -662,7 +662,7 @@ export default function DemoPage() {
                 <Icon className="w-5 h-5 mb-2" style={{ color: r.color }} />
                 <p
                   className="font-semibold text-sm"
-                  style={{ color: activeRole === r.key ? r.color : "#0f172a" }}
+                  style={{ color: activeRole === r.key ? r.color : "#4a5568" }}
                 >
                   {r.label}
                 </p>
@@ -684,7 +684,7 @@ export default function DemoPage() {
             />
           </div>
           <div>
-            <h2 className="font-bold text-[#0f172a]">
+            <h2 className="font-bold text-[#1a1a1a]">
               {currentRole.label} View
             </h2>
             <p className="text-xs text-slate-500">
@@ -709,7 +709,7 @@ export default function DemoPage() {
         {activeRole === "owner" && <OwnerView />}
 
         {/* CTA */}
-        <div className="mt-10 bg-[#0f172a] rounded-2xl p-6 text-white text-center">
+        <div className="mt-10 bg-[#f97316] rounded-2xl p-6 text-white text-center">
           <CheckCircle className="w-8 h-8 text-[#f97316] mx-auto mb-3" />
           <h3 className="text-xl font-bold mb-2">
             Ready to manage your real project?

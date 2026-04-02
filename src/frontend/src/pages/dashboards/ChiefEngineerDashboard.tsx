@@ -1551,7 +1551,9 @@ export default function ChiefEngineerDashboard() {
                 size="sm"
                 variant={adminTab === t ? "default" : "outline"}
                 onClick={() => setAdminTab(t)}
-                className={adminTab === t ? "bg-[#0f172a] text-white" : ""}
+                className={
+                  adminTab === t ? "bg-[#f97316] text-white" : "text-gray-600"
+                }
               >
                 {t.charAt(0).toUpperCase() + t.slice(1)}
               </Button>
@@ -1581,7 +1583,7 @@ export default function ChiefEngineerDashboard() {
                   />
                 </div>
                 <Button
-                  className="bg-[#0f172a] hover:bg-slate-800 text-white"
+                  className="bg-[#1a1a1a] hover:bg-gray-800 text-white"
                   onClick={handleSaveSettings}
                 >
                   Save Settings
@@ -1771,7 +1773,7 @@ export default function ChiefEngineerDashboard() {
                     </Select>
                   </div>
                   <Button
-                    className="bg-[#0f172a] hover:bg-slate-800 text-white"
+                    className="bg-[#1a1a1a] hover:bg-gray-800 text-white"
                     onClick={handleAddMember}
                   >
                     <Plus className="w-4 h-4 mr-1" />
@@ -1798,7 +1800,7 @@ export default function ChiefEngineerDashboard() {
                   />
                 </div>
                 <Button
-                  className="bg-[#0f172a] hover:bg-slate-800 text-white"
+                  className="bg-[#1a1a1a] hover:bg-gray-800 text-white"
                   onClick={handleSetBudget}
                 >
                   Save Budget
@@ -1847,7 +1849,11 @@ export default function ChiefEngineerDashboard() {
                 size="sm"
                 variant={auditFilter === f ? "default" : "outline"}
                 onClick={() => setAuditFilter(f)}
-                className={auditFilter === f ? "bg-[#0f172a] text-white" : ""}
+                className={
+                  auditFilter === f
+                    ? "bg-[#f97316] text-white"
+                    : "text-gray-600"
+                }
               >
                 {f}
               </Button>
