@@ -19,7 +19,8 @@ import {
   Shield,
   Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { ensureDemoSeeded } from "../canister";
 
 type DemoRole = "chief" | "site" | "materials" | "owner";
 
@@ -597,6 +598,9 @@ function OwnerView() {
 }
 
 export default function DemoPage() {
+  useEffect(() => {
+    ensureDemoSeeded();
+  }, []);
   const [activeRole, setActiveRole] = useState<DemoRole>("chief");
 
   const currentRole = ROLES.find((r) => r.key === activeRole)!;

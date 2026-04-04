@@ -30,6 +30,7 @@ import {
   Camera,
   ClipboardList,
   Download,
+  FileSpreadsheet,
   Plus,
   TrendingUp,
   Users,
@@ -41,6 +42,8 @@ import { toast } from "sonner";
 import { useAuth } from "../../AuthContext";
 import { type Worker, useProjectData } from "../../ProjectDataContext";
 import DashboardLayout from "../../components/DashboardLayout";
+import InlineChatPanel from "../../components/InlineChatPanel";
+import { exportAttendanceCSV, exportProgressCSV } from "../../utils/csvExport";
 import { NATIONALITIES } from "../../utils/currency";
 import { exportAttendancePDF, exportProgressPDF } from "../../utils/pdfExport";
 
@@ -420,6 +423,21 @@ export default function SiteEngineerDashboard() {
             >
               <Download className="w-3.5 h-3.5 mr-1" /> Export PDF
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-[#0ea5e9] text-[#0ea5e9] hover:bg-[#0ea5e9]/10"
+              onClick={() =>
+                exportAttendanceCSV(
+                  data.workers,
+                  data.attendance,
+                  activeProject?.name ?? "Project",
+                )
+              }
+              data-ocid="se.attendance.secondary_button"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Export CSV
+            </Button>
           </div>
 
           {workerTab === "list" && (
@@ -707,6 +725,21 @@ export default function SiteEngineerDashboard() {
             >
               <Download className="w-3.5 h-3.5 mr-1" /> Export Progress PDF
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-[#0ea5e9] text-[#0ea5e9] hover:bg-[#0ea5e9]/10"
+              onClick={() =>
+                exportProgressCSV(
+                  data.progressHistory,
+                  activeProject?.name ?? "Project",
+                  data.currentProgress,
+                )
+              }
+              data-ocid="se.progress.secondary_button"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Export CSV
+            </Button>
           </div>
           <div className="flex flex-col sm:flex-row gap-6">
             <div className="flex flex-col items-center justify-center bg-white rounded-2xl border p-8 min-w-[180px]">
@@ -965,6 +998,18 @@ export default function SiteEngineerDashboard() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* CHAT */}
+      {activeTab === "chat" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-[#0f172a]">
+              Project Group Chat
+            </h2>
+          </div>
+          <InlineChatPanel />
         </div>
       )}
 

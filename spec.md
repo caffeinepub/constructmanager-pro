@@ -1,38 +1,63 @@
 # ConstructManager Pro
 
 ## Current State
-Frontend-only React SPA with all data in React state (resets on refresh). Features: landing page, auth (demo credentials), multi-project system with passcode access, role-based dashboards (Chief Engineer, Site Engineer, Material Engineer, Site Owner), labour/materials/progress modules, group chat, direct messages, PDF export, nationality/currency selector, autocomplete material DB, inline photo attachments in progress log, floating calculator, notifications panel.
 
-No persistent backend. All data stored in memory.
+A fully-featured frontend-only React app with localStorage persistence. All modules are implemented in the frontend:
+- Authentication (sign-up/login) stored in localStorage
+- Multi-project dashboard with Team Code + Team Password access
+- RBAC: Chief Engineer, Site Engineer, Materials Engineer, Site Owner
+- Labour management: add/edit workers, attendance grid, wage calculation, payroll approval
+- Material management: autocomplete from master DB (40+ materials), inventory (A-Z), GRN/Issue, low-stock alerts
+- Site progress: completion %, notes, multiple photo attachments inline in progress log
+- Group chat + DMs (InlineChatPanel, ChatContext)
+- PDF export (jsPDF) + CSV export for all modules
+- Notifications panel
+- Floating calculator
+- Demo page with pre-seeded data for all 4 roles
+- User manual
+- Color scheme: light grey bg (#f4f6f9), orange accent (#f97316), white cards
+
+The Motoko backend (`main.mo`) exists but is not connected to the frontend at all — all data lives in React state + localStorage.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Motoko backend for persistent data storage
-- Real user accounts (register/login with email + password hash)
-- Persistent projects, members, roles
-- Persistent workers, attendance records
-- Persistent materials inventory, GRN/issue transactions
-- Persistent progress updates with photo attachments (blob storage)
-- Persistent notifications
-- Persistent chat messages (project group + DM)
-- New color scheme: light grey (#f4f5f7) background, orange (#f97316) accents, white cards, black/dark-grey text
-- Nationality selector with flag emoji on sign-up
-- Currency preference stored per user
-- 40+ material master database pre-loaded in backend
+- Real backend persistence via Motoko canister for: users, projects, project members, workers, attendance, materials, material transactions, progress entries, chat messages, notifications
+- Proper multi-tenancy: each user's data isolated; project access controlled by Team Code + hashed Team Password
+- Nationality/currency stored in user profile in backend
+- Phone number with country code stored in backend
+- Payroll records persisted in backend
+- Audit log entries stored in backend
+- Backend-enforced RBAC for all mutations
 
 ### Modify
-- Auth flow: sign-up creates real backend user; login validates against stored credentials
-- Projects dashboard: loads from backend
-- All CRUD operations call backend actors
-- Color scheme across all pages and components
+- Rebuild Motoko backend with comprehensive stable storage covering all app data models
+- Wire frontend to call canister APIs instead of localStorage for all CRUD operations
+- Keep all existing UI, visual design, and component structure intact
+- Keep demo mode (pre-seeded demo users + projects seeded in canister)
+- Keep PDF/CSV export (frontend-only, no change needed)
+- Keep group chat + DMs (can remain in frontend state, backed by canister for persistence)
 
 ### Remove
-- Hardcoded demo credentials as primary auth (keep demo mode as separate sandbox)
-- In-memory state as source of truth
+- localStorage-based persistence (replaced by canister)
+- Static mock data from contexts (replaced by canister calls)
 
 ## Implementation Plan
-1. Backend: user accounts (register, login, profile with nationality/currency/phone), projects (create, join, list, passcode/password), members/roles, workers, attendance, materials (master DB + project inventory, GRN, issues), progress updates, notifications, chat messages
-2. Blob storage for progress photos
-3. Frontend: wire all components to backend actors; update color scheme to light grey/orange/white/black; keep all existing UI structure and modules
-4. Demo mode: pre-seed demo accounts (ce@demo.com etc.) in backend on first load
+
+1. **Motoko backend**: Rebuild `main.mo` with stable variables covering:
+   - Users table (email, password hash, name, nationality, currency, phone, role)
+   - Projects table (id, name, location, teamCode, teamPasswordHash, completionPct, createdBy)
+   - ProjectMembers (projectId → userId → role)
+   - Workers (projectId, name, skill, wage, phone, email)
+   - Attendance (workerId, date, status)
+   - Materials (projectId, name, unit, stock, reorderLevel, price)
+   - MaterialTransactions (materialId, type, qty, date, by)
+   - ProgressEntries (projectId, pct, notes, photos[], date, by)
+   - ChatMessages (projectId, senderId, text, timestamp)
+   - Notifications (userId, type, content, read)
+   - Payroll (projectId, period, total, status, submittedBy)
+   - AuditLog (userId, action, module, details, timestamp)
+
+2. **Frontend integration**: Update AuthContext, ProjectDataContext, ChatContext to call canister APIs via generated bindings instead of localStorage
+
+3. **Keep unchanged**: All UI components, visual design, PDF/CSV export logic, autocomplete material database (frontend constant), demo page layout, user manual

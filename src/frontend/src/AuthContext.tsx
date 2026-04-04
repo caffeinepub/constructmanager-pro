@@ -7,6 +7,11 @@ import {
   useRef,
   useState,
 } from "react";
+import {
+  canisterChangePassword,
+  canisterLogin,
+  canisterRegister,
+} from "./canister";
 
 export type UserRole =
   | "siteOwner"
@@ -21,7 +26,7 @@ export interface ProjectMember {
 }
 
 export interface Project {
-  id: string;
+  id: string; // numeric string from canister
   name: string;
   description: string;
   teamCode: string;
@@ -41,94 +46,15 @@ export interface AuthUser {
   phone?: string;
 }
 
-const DEMO_USERS: Array<{
-  email: string;
-  password: string;
-  name: string;
-  role: UserRole;
-}> = [
-  {
-    email: "ce@demo.com",
-    password: "ChiefEng@123",
-    name: "Arjun Ramesh",
-    role: "chiefEngineer",
-  },
-  {
-    email: "so@demo.com",
-    password: "SiteOwner@123",
-    name: "Suresh Kumar",
-    role: "siteOwner",
-  },
-  {
-    email: "se@demo.com",
-    password: "SiteEng@123",
-    name: "Priya Nair",
-    role: "siteEngineer",
-  },
-  {
-    email: "me@demo.com",
-    password: "MatEng@123",
-    name: "Dinesh Babu",
-    role: "materialsEngineer",
-  },
-];
-
-export const DEMO_PROJECTS: Project[] = [
-  {
-    id: "alpha",
-    name: "Project Alpha",
-    description: "Greenfield Residential Block A – Chennai North",
-    teamCode: "ALPHA42",
-    teamPassword: "alpha@pass",
-    status: "Active",
-    budget: 5000000,
-    location: "Chennai North",
-    members: [
-      { email: "ce@demo.com", name: "Arjun Ramesh", role: "chiefEngineer" },
-      { email: "so@demo.com", name: "Suresh Kumar", role: "siteOwner" },
-      { email: "se@demo.com", name: "Priya Nair", role: "siteEngineer" },
-      { email: "me@demo.com", name: "Dinesh Babu", role: "materialsEngineer" },
-    ],
-  },
-  {
-    id: "beta",
-    name: "Site Beta",
-    description: "Commercial Plaza Foundation – Anna Nagar",
-    teamCode: "BETA56",
-    teamPassword: "beta@pass",
-    status: "Active",
-    budget: 12000000,
-    location: "Anna Nagar",
-    members: [
-      { email: "ce@demo.com", name: "Arjun Ramesh", role: "chiefEngineer" },
-      { email: "se@demo.com", name: "Priya Nair", role: "siteEngineer" },
-      { email: "me@demo.com", name: "Dinesh Babu", role: "materialsEngineer" },
-    ],
-  },
-  {
-    id: "tower",
-    name: "Tower C",
-    description: "Highway Overpass Section 3 – Tambaram",
-    teamCode: "TOWER99",
-    teamPassword: "tower@pass",
-    status: "On Hold",
-    budget: 8500000,
-    location: "Tambaram",
-    members: [
-      { email: "ce@demo.com", name: "Arjun Ramesh", role: "chiefEngineer" },
-      { email: "so@demo.com", name: "Suresh Kumar", role: "siteOwner" },
-    ],
-  },
-];
-
-const PROJECTS_STORAGE_KEY = "constructmanager_projects_v2";
+const AUTH_STORAGE_KEY = "constructmanager_user_v5";
 
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   projects: Project[];
+  setProjects: (projects: Project[]) => void;
   activeProject: Project | null;
-  cachedCodes: Map<string, string>;
+  cachedCodes: Map<string, boolean>; // projectId -> verified
   login: (email: string, password: string) => Promise<void>;
   register: (
     name: string,
@@ -137,11 +63,12 @@ interface AuthContextType {
     role: UserRole,
     nationality?: string,
     currency?: string,
+    phone?: string,
   ) => Promise<void>;
   logout: () => void;
-  enterProject: (projectId: string, teamCode: string) => boolean;
+  enterProject: (projectId: string, teamPassword: string) => Promise<boolean>;
   setActiveProject: (project: Project | null) => void;
-  addProject: (project: Omit<Project, "id">) => void;
+  addProject: (project: Project) => void;
   updateProjectCredentials: (
     projectId: string,
     teamCode: string,
@@ -152,14 +79,16 @@ interface AuthContextType {
     name: string,
     location: string,
   ) => void;
-  joinProject: (teamCode: string) => boolean;
+  joinProject: (
+    teamCode: string,
+    teamPassword: string,
+    role: UserRole,
+  ) => Promise<{ ok: boolean; projectId: string; message: string }>;
   addMemberToProject: (projectId: string, member: ProjectMember) => void;
   removeMemberFromProject: (projectId: string, email: string) => void;
   changePassword: (current: string, newPass: string) => Promise<void>;
   resetMemberPassword: (memberEmail: string) => Promise<void>;
 }
-
-const AUTH_STORAGE_KEY = "constructmanager_user_v4";
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -197,35 +126,33 @@ export function roleToLabel(role: string): string {
   }
 }
 
-function loadProjectsFromStorage(): Project[] {
-  try {
-    const stored = localStorage.getItem(PROJECTS_STORAGE_KEY);
-    if (!stored) return DEMO_PROJECTS;
-    const parsed: Project[] = JSON.parse(stored);
-    const map = new Map<string, Project>();
-    for (const p of DEMO_PROJECTS) map.set(p.id, p);
-    for (const p of parsed) map.set(p.id, p);
-    return Array.from(map.values());
-  } catch {
-    return DEMO_PROJECTS;
-  }
-}
-
 export function isAdminRole(role: UserRole): boolean {
   return role === "chiefEngineer";
+}
+
+function mapRoleString(roleStr: string): UserRole {
+  if (
+    roleStr === "chiefEngineer" ||
+    roleStr === "siteEngineer" ||
+    roleStr === "materialsEngineer" ||
+    roleStr === "siteOwner"
+  ) {
+    return roleStr as UserRole;
+  }
+  return "siteEngineer";
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [projects, setProjects] = useState<Project[]>(() =>
-    loadProjectsFromStorage(),
-  );
+  const [projects, setProjects] = useState<Project[]>([]);
   const [activeProject, setActiveProjectState] = useState<Project | null>(null);
-  const [cachedCodes] = useState<Map<string, string>>(new Map());
+  // Map from projectId -> verified (canister-verified password)
+  const [cachedCodes] = useState<Map<string, boolean>>(new Map());
   const setUserRef = useRef(setUser);
   setUserRef.current = setUser;
 
+  // Restore auth from localStorage on mount
   useEffect(() => {
     try {
       const stored = localStorage.getItem(AUTH_STORAGE_KEY);
@@ -236,41 +163,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects));
-    } catch {
-      /* ignore */
-    }
-  }, [projects]);
-
   const login = useCallback(async (email: string, password: string) => {
     const emailLower = email.toLowerCase();
-    const demo = DEMO_USERS.find(
-      (u) => u.email === emailLower && u.password === password,
-    );
-    if (demo) {
-      const authUser: AuthUser = {
-        name: demo.name,
-        email: emailLower,
-        role: demo.role,
-      };
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authUser));
-      setUserRef.current(authUser);
-      return;
-    }
-    const storedReg = localStorage.getItem("constructmanager_registrations");
-    const registrations: Record<
-      string,
-      { name: string; role: UserRole; password: string }
-    > = storedReg ? JSON.parse(storedReg) : {};
-    const reg = registrations[emailLower];
-    if (!reg) throw new Error("No account found. Please sign up first.");
-    if (reg.password !== password) throw new Error("Incorrect password.");
+    const result = await canisterLogin(emailLower, password);
+    if (!result.ok) throw new Error(result.message || "Login failed");
     const authUser: AuthUser = {
-      name: reg.name,
+      name: result.name,
       email: emailLower,
-      role: reg.role,
+      role: mapRoleString(result.role),
+      nationality: result.nationality || undefined,
+      currency: result.currency || undefined,
+      phone: result.phone || undefined,
     };
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authUser));
     setUserRef.current(authUser);
@@ -284,37 +187,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role: UserRole,
       nationality?: string,
       currency?: string,
+      phone?: string,
     ) => {
       const emailLower = email.toLowerCase();
-      const storedReg = localStorage.getItem("constructmanager_registrations");
-      const registrations: Record<
-        string,
-        {
-          name: string;
-          role: UserRole;
-          password: string;
-          nationality?: string;
-          currency?: string;
-        }
-      > = storedReg ? JSON.parse(storedReg) : {};
-      registrations[emailLower] = {
+      const result = await canisterRegister(
+        emailLower,
         name,
-        role,
         password,
-        nationality,
-        currency,
-      };
-      localStorage.setItem(
-        "constructmanager_registrations",
-        JSON.stringify(registrations),
+        nationality ?? "",
+        currency ?? "",
+        phone ?? "",
+        role,
       );
+      if (!result.ok) throw new Error(result.message || "Registration failed");
+      // Auto-login after registration
+      const loginResult = await canisterLogin(emailLower, password);
       const authUser: AuthUser = {
         name,
         email: emailLower,
         role,
         nationality,
         currency,
+        phone,
       };
+      if (loginResult.ok) {
+        authUser.name = loginResult.name || name;
+        authUser.nationality = loginResult.nationality || nationality;
+        authUser.currency = loginResult.currency || currency;
+        authUser.phone = loginResult.phone || phone;
+      }
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authUser));
       setUserRef.current(authUser);
     },
@@ -325,29 +226,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(AUTH_STORAGE_KEY);
     setUser(null);
     setActiveProjectState(null);
+    setProjects([]);
     cachedCodes.clear();
   }, [cachedCodes]);
 
   const enterProject = useCallback(
-    (projectId: string, teamCode: string) => {
+    async (projectId: string, teamPassword: string): Promise<boolean> => {
       const project = projects.find((p) => p.id === projectId) ?? null;
       if (!project) return false;
-      if (project.teamCode.toUpperCase() !== teamCode.toUpperCase())
+      // Always verify against canister
+      try {
+        const { canisterVerifyProjectPassword } = await import("./canister");
+        const result = await canisterVerifyProjectPassword(
+          user?.email ?? "",
+          Number(projectId),
+          teamPassword,
+        );
+        if (result.ok) {
+          cachedCodes.set(projectId, true);
+          setActiveProjectState(project);
+          return true;
+        }
         return false;
-      cachedCodes.set(projectId, teamCode);
-      setActiveProjectState(project);
-      return true;
+      } catch {
+        return false;
+      }
     },
-    [projects, cachedCodes],
+    [projects, cachedCodes, user],
   );
 
   const setActiveProject = useCallback((project: Project | null) => {
     setActiveProjectState(project);
   }, []);
 
-  const addProject = useCallback((projectData: Omit<Project, "id">) => {
-    const newProject: Project = { ...projectData, id: Date.now().toString() };
-    setProjects((prev) => [...prev, newProject]);
+  const addProject = useCallback((project: Project) => {
+    setProjects((prev) => [...prev, project]);
   }, []);
 
   const updateProjectCredentials = useCallback(
@@ -378,16 +291,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const joinProject = useCallback(
-    (teamCode: string) => {
-      const project = projects.find(
-        (p) => p.teamCode.toUpperCase() === teamCode.toUpperCase(),
-      );
-      if (!project) return false;
-      cachedCodes.set(project.id, teamCode);
-      setActiveProjectState(project);
-      return true;
+    async (teamCode: string, teamPassword: string, role: UserRole) => {
+      try {
+        const { canisterJoinProject } = await import("./canister");
+        const result = await canisterJoinProject(
+          user?.email ?? "",
+          teamCode,
+          teamPassword,
+          role,
+        );
+        return {
+          ok: result.ok,
+          projectId: String(Number(result.projectId)),
+          message: result.message,
+        };
+      } catch (e) {
+        return { ok: false, projectId: "", message: String(e) };
+      }
     },
-    [projects, cachedCodes],
+    [user],
   );
 
   const addMemberToProject = useCallback(
@@ -421,10 +343,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const changePassword = useCallback(
-    async (_current: string, _newPass: string) => {
-      await new Promise((r) => setTimeout(r, 300));
+    async (current: string, newPass: string) => {
+      if (!user) throw new Error("Not logged in");
+      const result = await canisterChangePassword(user.email, current, newPass);
+      if (!result.ok)
+        throw new Error(result.message || "Password change failed");
     },
-    [],
+    [user],
   );
 
   return (
@@ -433,6 +358,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isLoading,
         projects,
+        setProjects,
         activeProject,
         cachedCodes,
         login,

@@ -6,557 +6,788 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Actor, HttpAgent, type HttpAgentOptions, type ActorConfig, type Agent, type ActorSubclass } from "@icp-sdk/core/agent";
+import {
+  Actor,
+  HttpAgent,
+  type HttpAgentOptions,
+  type ActorConfig,
+  type Agent,
+  type ActorSubclass,
+} from "@icp-sdk/core/agent";
 import type { Principal } from "@icp-sdk/core/principal";
 import { idlFactory, type _SERVICE } from "./declarations/backend.did";
-export interface Some<T> {
-    __kind__: "Some";
-    value: T;
+
+export type AppRole =
+  | "chiefEngineer"
+  | "siteEngineer"
+  | "materialsEngineer"
+  | "siteOwner";
+
+export type UserRole = "admin" | "user" | "guest";
+
+export interface CanisterWorker {
+  dailyWage: bigint;
+  dialCode: string;
+  id: bigint;
+  name: string;
+  phone: string;
+  projectId: bigint;
+  skill: string;
+  wEmail: string;
 }
-export interface None {
-    __kind__: "None";
+
+export interface CanisterProject {
+  budget: bigint;
+  completion: bigint;
+  createdBy: string;
+  id: bigint;
+  location: string;
+  name: string;
+  pwHash: string;
+  startDate: string;
+  teamCode: string;
 }
-export type Option<T> = Some<T> | None;
-function some<T>(value: T): Some<T> {
-    return {
-        __kind__: "Some",
-        value: value
-    };
+
+export interface CanisterProjectMember {
+  email: string;
+  projectId: bigint;
+  role: AppRole;
 }
-function none(): None {
-    return {
-        __kind__: "None"
-    };
+
+export interface CanisterProgressEntry {
+  byEmail: string;
+  date: string;
+  id: bigint;
+  notes: string;
+  pct: bigint;
+  photos: Array<string>;
+  projectId: bigint;
 }
-function isNone<T>(option: Option<T>): option is None {
-    return option.__kind__ === "None";
+
+export interface CanisterPayrollRecord {
+  approvedBy: string;
+  id: bigint;
+  period: string;
+  projectId: bigint;
+  status: string;
+  submittedBy: string;
+  totalAmount: bigint;
 }
-function isSome<T>(option: Option<T>): option is Some<T> {
-    return option.__kind__ === "Some";
+
+export interface CanisterNotification {
+  content: string;
+  id: bigint;
+  isRead: boolean;
+  nType: string;
+  timestamp: string;
+  userEmail: string;
 }
-function unwrap<T>(option: Option<T>): T {
-    if (isNone(option)) {
-        throw new Error("unwrap: none");
-    }
-    return option.value;
+
+export interface CanisterMaterialTx {
+  byEmail: string;
+  date: string;
+  id: bigint;
+  materialId: bigint;
+  notes: string;
+  projectId: bigint;
+  qty: bigint;
+  txType: string;
 }
-function candid_some<T>(value: T): [T] {
-    return [
-        value
-    ];
+
+export interface CanisterMaterial {
+  id: bigint;
+  name: string;
+  priceUsd: bigint;
+  projectId: bigint;
+  reorderLevel: bigint;
+  stock: bigint;
+  supplier: string;
+  unit: string;
 }
-function candid_none<T>(): [] {
-    return [];
+
+export interface CanisterChatMessage {
+  id: bigint;
+  isDM: boolean;
+  projectId: bigint;
+  receiverEmail: string;
+  senderEmail: string;
+  senderName: string;
+  senderRole: string;
+  text: string;
+  timestamp: string;
 }
-function record_opt_to_undefined<T>(arg: T | null): T | undefined {
-    return arg == null ? undefined : arg;
+
+export interface CanisterAuditEntry {
+  action: string;
+  area: string;
+  details: string;
+  id: bigint;
+  timestamp: string;
+  userEmail: string;
 }
-export class ExternalBlob {
-    _blob?: Uint8Array<ArrayBuffer> | null;
-    directURL: string;
-    onProgress?: (percentage: number) => void = undefined;
-    private constructor(directURL: string, blob: Uint8Array<ArrayBuffer> | null){
-        if (blob) {
-            this._blob = blob;
-        }
-        this.directURL = directURL;
-    }
-    static fromURL(url: string): ExternalBlob {
-        return new ExternalBlob(url, null);
-    }
-    static fromBytes(blob: Uint8Array<ArrayBuffer>): ExternalBlob {
-        const url = URL.createObjectURL(new Blob([
-            new Uint8Array(blob)
-        ], {
-            type: 'application/octet-stream'
-        }));
-        return new ExternalBlob(url, blob);
-    }
-    public async getBytes(): Promise<Uint8Array<ArrayBuffer>> {
-        if (this._blob) {
-            return this._blob;
-        }
-        const response = await fetch(this.directURL);
-        const blob = await response.blob();
-        this._blob = new Uint8Array(await blob.arrayBuffer());
-        return this._blob;
-    }
-    public getDirectURL(): string {
-        return this.directURL;
-    }
-    public withUploadProgress(onProgress: (percentage: number) => void): ExternalBlob {
-        this.onProgress = onProgress;
-        return this;
-    }
+
+export interface CanisterAttendanceRecord {
+  date: string;
+  projectId: bigint;
+  status: string;
+  workerId: bigint;
 }
-export interface Material {
-    name: string;
-    quantity: bigint;
-    reorderLevel: bigint;
-}
-export interface User {
-    name: string;
-    role: UserRole;
-    email: string;
-    hashedPassword: string;
-}
-export interface Task {
-    status: string;
-    title: string;
-    assignedTo: Principal;
-    description: string;
-}
-export interface Project {
-    status: string;
-    name: string;
-    site: string;
-    budget: bigint;
-}
-export interface DashboardSummary {
-    teamList: Array<User>;
-    projects: Array<Project>;
-    attendanceSummary: bigint;
-    financialOverview: bigint;
-}
-export enum UserRole {
-    siteOwner = "siteOwner",
-    materialsEngineer = "materialsEngineer",
-    chiefEngineer = "chiefEngineer",
-    siteEngineer = "siteEngineer"
-}
-export enum UserRole__1 {
-    admin = "admin",
-    user = "user",
-    guest = "guest"
-}
+
 export interface backendInterface {
-    _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
-    addMaterial(name: string, quantity: bigint, reorderLevel: bigint): Promise<bigint>;
-    addProject(name: string, site: string, status: string, budget: bigint): Promise<bigint>;
-    approveMaterialRequest(materialName: string, quantity: bigint): Promise<void>;
-    assignCallerUserRole(user: Principal, role: UserRole__1): Promise<void>;
-    assignTask(title: string, description: string, assignedTo: Principal, status: string): Promise<bigint>;
-    createReorderAlert(materialId: bigint, reorderLevel: bigint): Promise<void>;
-    getAllUsers(): Promise<Array<[Principal, User]>>;
-    getCallerUserRole(): Promise<UserRole__1>;
-    getCurrentUserProfile(): Promise<User>;
-    getFullDashboardSummary(): Promise<DashboardSummary>;
-    getInventory(): Promise<Array<Material>>;
-    getProjectOverview(): Promise<Array<Project>>;
-    getSiteEngineerTasks(siteEngineer: Principal): Promise<Array<Task>>;
-    isCallerAdmin(): Promise<boolean>;
-    loginUser(email: string, password: string): Promise<void>;
-    registerUser(name: string, email: string, password: string, role: UserRole): Promise<void>;
-    submitDailyLog(date: bigint, content: string): Promise<void>;
-    updateStock(materialId: bigint, quantity: bigint): Promise<void>;
-}
-import type { DashboardSummary as _DashboardSummary, Project as _Project, User as _User, UserRole as _UserRole, UserRole__1 as _UserRole__1 } from "./declarations/backend.did.d.ts";
-export class Backend implements backendInterface {
-    constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
-    async _initializeAccessControlWithSecret(arg0: string): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor._initializeAccessControlWithSecret(arg0);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor._initializeAccessControlWithSecret(arg0);
-            return result;
-        }
-    }
-    async addMaterial(arg0: string, arg1: bigint, arg2: bigint): Promise<bigint> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.addMaterial(arg0, arg1, arg2);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.addMaterial(arg0, arg1, arg2);
-            return result;
-        }
-    }
-    async addProject(arg0: string, arg1: string, arg2: string, arg3: bigint): Promise<bigint> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.addProject(arg0, arg1, arg2, arg3);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.addProject(arg0, arg1, arg2, arg3);
-            return result;
-        }
-    }
-    async approveMaterialRequest(arg0: string, arg1: bigint): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.approveMaterialRequest(arg0, arg1);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.approveMaterialRequest(arg0, arg1);
-            return result;
-        }
-    }
-    async assignCallerUserRole(arg0: Principal, arg1: UserRole__1): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.assignCallerUserRole(arg0, to_candid_UserRole__1_n1(this._uploadFile, this._downloadFile, arg1));
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.assignCallerUserRole(arg0, to_candid_UserRole__1_n1(this._uploadFile, this._downloadFile, arg1));
-            return result;
-        }
-    }
-    async assignTask(arg0: string, arg1: string, arg2: Principal, arg3: string): Promise<bigint> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.assignTask(arg0, arg1, arg2, arg3);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.assignTask(arg0, arg1, arg2, arg3);
-            return result;
-        }
-    }
-    async createReorderAlert(arg0: bigint, arg1: bigint): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.createReorderAlert(arg0, arg1);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.createReorderAlert(arg0, arg1);
-            return result;
-        }
-    }
-    async getAllUsers(): Promise<Array<[Principal, User]>> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getAllUsers();
-                return from_candid_vec_n3(this._uploadFile, this._downloadFile, result);
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getAllUsers();
-            return from_candid_vec_n3(this._uploadFile, this._downloadFile, result);
-        }
-    }
-    async getCallerUserRole(): Promise<UserRole__1> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getCallerUserRole();
-                return from_candid_UserRole__1_n9(this._uploadFile, this._downloadFile, result);
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getCallerUserRole();
-            return from_candid_UserRole__1_n9(this._uploadFile, this._downloadFile, result);
-        }
-    }
-    async getCurrentUserProfile(): Promise<User> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getCurrentUserProfile();
-                return from_candid_User_n5(this._uploadFile, this._downloadFile, result);
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getCurrentUserProfile();
-            return from_candid_User_n5(this._uploadFile, this._downloadFile, result);
-        }
-    }
-    async getFullDashboardSummary(): Promise<DashboardSummary> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getFullDashboardSummary();
-                return from_candid_DashboardSummary_n11(this._uploadFile, this._downloadFile, result);
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getFullDashboardSummary();
-            return from_candid_DashboardSummary_n11(this._uploadFile, this._downloadFile, result);
-        }
-    }
-    async getInventory(): Promise<Array<Material>> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getInventory();
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getInventory();
-            return result;
-        }
-    }
-    async getProjectOverview(): Promise<Array<Project>> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getProjectOverview();
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getProjectOverview();
-            return result;
-        }
-    }
-    async getSiteEngineerTasks(arg0: Principal): Promise<Array<Task>> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getSiteEngineerTasks(arg0);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getSiteEngineerTasks(arg0);
-            return result;
-        }
-    }
-    async isCallerAdmin(): Promise<boolean> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.isCallerAdmin();
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.isCallerAdmin();
-            return result;
-        }
-    }
-    async loginUser(arg0: string, arg1: string): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.loginUser(arg0, arg1);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.loginUser(arg0, arg1);
-            return result;
-        }
-    }
-    async registerUser(arg0: string, arg1: string, arg2: string, arg3: UserRole): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.registerUser(arg0, arg1, arg2, to_candid_UserRole_n14(this._uploadFile, this._downloadFile, arg3));
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.registerUser(arg0, arg1, arg2, to_candid_UserRole_n14(this._uploadFile, this._downloadFile, arg3));
-            return result;
-        }
-    }
-    async submitDailyLog(arg0: bigint, arg1: string): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.submitDailyLog(arg0, arg1);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.submitDailyLog(arg0, arg1);
-            return result;
-        }
-    }
-    async updateStock(arg0: bigint, arg1: bigint): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.updateStock(arg0, arg1);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.updateStock(arg0, arg1);
-            return result;
-        }
-    }
-}
-function from_candid_DashboardSummary_n11(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _DashboardSummary): DashboardSummary {
-    return from_candid_record_n12(_uploadFile, _downloadFile, value);
-}
-function from_candid_UserRole__1_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole__1): UserRole__1 {
-    return from_candid_variant_n10(_uploadFile, _downloadFile, value);
-}
-function from_candid_UserRole_n7(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {
-    return from_candid_variant_n8(_uploadFile, _downloadFile, value);
-}
-function from_candid_User_n5(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _User): User {
-    return from_candid_record_n6(_uploadFile, _downloadFile, value);
-}
-function from_candid_record_n12(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
-    teamList: Array<_User>;
-    projects: Array<_Project>;
-    attendanceSummary: bigint;
-    financialOverview: bigint;
-}): {
-    teamList: Array<User>;
-    projects: Array<Project>;
-    attendanceSummary: bigint;
-    financialOverview: bigint;
-} {
-    return {
-        teamList: from_candid_vec_n13(_uploadFile, _downloadFile, value.teamList),
-        projects: value.projects,
-        attendanceSummary: value.attendanceSummary,
-        financialOverview: value.financialOverview
-    };
-}
-function from_candid_record_n6(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
+  _initializeAccessControlWithSecret(secret: string): Promise<void>;
+  addMaterial(
+    email: string,
+    projectId: bigint,
+    name: string,
+    unit: string,
+    stock: bigint,
+    reorderLevel: bigint,
+    priceUsd: bigint,
+    supplier: string,
+    ts: string,
+  ): Promise<{ materialId: bigint; message: string; ok: boolean }>;
+  addProgress(
+    email: string,
+    projectId: bigint,
+    pct: bigint,
+    notes: string,
+    date: string,
+    photos: string[],
+    ts: string,
+  ): Promise<{ entryId: bigint; message: string; ok: boolean }>;
+  addWorker(
+    email: string,
+    projectId: bigint,
+    name: string,
+    skill: string,
+    dailyWage: bigint,
+    phone: string,
+    wEmail: string,
+    dialCode: string,
+    ts: string,
+  ): Promise<{ message: string; ok: boolean; workerId: bigint }>;
+  approvePayroll(
+    email: string,
+    projectId: bigint,
+    payrollId: bigint,
+    ts: string,
+  ): Promise<{ message: string; ok: boolean }>;
+  assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+  changePassword(
+    email: string,
+    oldPw: string,
+    newPw: string,
+  ): Promise<{ message: string; ok: boolean }>;
+  createProject(
+    creatorEmail: string,
+    name: string,
+    location: string,
+    startDate: string,
+    teamCode: string,
+    teamPassword: string,
+    budget: bigint,
+    ts: string,
+  ): Promise<{ message: string; ok: boolean; projectId: bigint }>;
+  getAllProjects(): Promise<CanisterProject[]>;
+  getAttendance(projectId: bigint): Promise<CanisterAttendanceRecord[]>;
+  getAuditLog(email: string, projectId: bigint): Promise<CanisterAuditEntry[]>;
+  getCallerUserRole(): Promise<UserRole>;
+  getDMChat(
+    projectId: bigint,
+    email1: string,
+    email2: string,
+  ): Promise<CanisterChatMessage[]>;
+  getGroupChat(projectId: bigint): Promise<CanisterChatMessage[]>;
+  getMaterialTx(projectId: bigint): Promise<CanisterMaterialTx[]>;
+  getMaterials(projectId: bigint): Promise<CanisterMaterial[]>;
+  getNotifications(email: string): Promise<CanisterNotification[]>;
+  getPayroll(projectId: bigint): Promise<CanisterPayrollRecord[]>;
+  getProgress(projectId: bigint): Promise<CanisterProgressEntry[]>;
+  getProjectMembers(projectId: bigint): Promise<CanisterProjectMember[]>;
+  getUserProjects(email: string): Promise<CanisterProject[]>;
+  getWorkers(projectId: bigint): Promise<CanisterWorker[]>;
+  isCallerAdmin(): Promise<boolean>;
+  joinProject(
+    email: string,
+    teamCode: string,
+    teamPassword: string,
+    role: { [K in AppRole]?: null },
+  ): Promise<{ message: string; ok: boolean; projectId: bigint }>;
+  login(
+    email: string,
+    password: string,
+  ): Promise<{
+    currency: string;
+    message: string;
     name: string;
-    role: _UserRole;
-    email: string;
-    hashedPassword: string;
-}): {
-    name: string;
-    role: UserRole;
-    email: string;
-    hashedPassword: string;
-} {
-    return {
-        name: value.name,
-        role: from_candid_UserRole_n7(_uploadFile, _downloadFile, value.role),
-        email: value.email,
-        hashedPassword: value.hashedPassword
-    };
+    nationality: string;
+    ok: boolean;
+    phone: string;
+    role: string;
+  }>;
+  markAllNotifsRead(email: string): Promise<{ ok: boolean }>;
+  markAttendance(
+    email: string,
+    projectId: bigint,
+    workerId: bigint,
+    date: string,
+    status: string,
+  ): Promise<{ message: string; ok: boolean }>;
+  markNotifRead(email: string, notifId: bigint): Promise<{ ok: boolean }>;
+  postChat(
+    projectId: bigint,
+    senderEmail: string,
+    senderName: string,
+    senderRole: string,
+    text: string,
+    timestamp: string,
+    isDM: boolean,
+    receiverEmail: string,
+  ): Promise<{ messageId: bigint; ok: boolean }>;
+  recordTx(
+    email: string,
+    projectId: bigint,
+    materialId: bigint,
+    txType: string,
+    qty: bigint,
+    date: string,
+    notes: string,
+    ts: string,
+  ): Promise<{ message: string; ok: boolean }>;
+  register(
+    email: string,
+    name: string,
+    password: string,
+    nationality: string,
+    currency: string,
+    phone: string,
+    role: { [K in AppRole]?: null },
+  ): Promise<{ message: string; ok: boolean }>;
+  seedDemo(): Promise<{ ok: boolean }>;
+  submitPayroll(
+    email: string,
+    projectId: bigint,
+    period: string,
+    totalAmount: bigint,
+    ts: string,
+  ): Promise<{ message: string; ok: boolean; payrollId: bigint }>;
+  updateMaterial(
+    email: string,
+    projectId: bigint,
+    materialId: bigint,
+    name: string,
+    unit: string,
+    stock: bigint,
+    reorderLevel: bigint,
+    priceUsd: bigint,
+    supplier: string,
+  ): Promise<{ message: string; ok: boolean }>;
+  updateProfile(
+    email: string,
+    password: string,
+    name: string,
+    nationality: string,
+    currency: string,
+    phone: string,
+  ): Promise<{ message: string; ok: boolean }>;
+  updateTeamCode(
+    email: string,
+    projectId: bigint,
+    newCode: string,
+    newPassword: string,
+  ): Promise<{ message: string; ok: boolean }>;
+  updateWorker(
+    email: string,
+    projectId: bigint,
+    workerId: bigint,
+    name: string,
+    skill: string,
+    dailyWage: bigint,
+    phone: string,
+    wEmail: string,
+    dialCode: string,
+  ): Promise<{ message: string; ok: boolean }>;
+  verifyProjectPassword(
+    email: string,
+    projectId: bigint,
+    teamPassword: string,
+  ): Promise<{ message: string; ok: boolean }>;
 }
-function from_candid_tuple_n4(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: [Principal, _User]): [Principal, User] {
-    return [
-        value[0],
-        from_candid_User_n5(_uploadFile, _downloadFile, value[1])
-    ];
+
+// Helper: convert AppRole string to Candid variant
+function toAppRoleVariant(role: AppRole): { [K in AppRole]?: null } {
+  return { [role]: null };
 }
-function from_candid_variant_n10(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
-    admin: null;
-} | {
-    user: null;
-} | {
-    guest: null;
-}): UserRole__1 {
-    return "admin" in value ? UserRole__1.admin : "user" in value ? UserRole__1.user : "guest" in value ? UserRole__1.guest : value;
+
+// Helper: convert Candid AppRole variant to string
+function fromAppRoleVariant(variant: Record<string, null>): AppRole {
+  return Object.keys(variant)[0] as AppRole;
 }
-function from_candid_variant_n8(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: {
-    siteOwner: null;
-} | {
-    materialsEngineer: null;
-} | {
-    chiefEngineer: null;
-} | {
-    siteEngineer: null;
-}): UserRole {
-    return "siteOwner" in value ? UserRole.siteOwner : "materialsEngineer" in value ? UserRole.materialsEngineer : "chiefEngineer" in value ? UserRole.chiefEngineer : "siteEngineer" in value ? UserRole.siteEngineer : value;
-}
-function from_candid_vec_n13(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<_User>): Array<User> {
-    return value.map((x)=>from_candid_User_n5(_uploadFile, _downloadFile, x));
-}
-function from_candid_vec_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: Array<[Principal, _User]>): Array<[Principal, User]> {
-    return value.map((x)=>from_candid_tuple_n4(_uploadFile, _downloadFile, x));
-}
-function to_candid_UserRole__1_n1(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole__1): _UserRole__1 {
-    return to_candid_variant_n2(_uploadFile, _downloadFile, value);
-}
-function to_candid_UserRole_n14(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): _UserRole {
-    return to_candid_variant_n15(_uploadFile, _downloadFile, value);
-}
-function to_candid_variant_n15(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole): {
-    siteOwner: null;
-} | {
-    materialsEngineer: null;
-} | {
-    chiefEngineer: null;
-} | {
-    siteEngineer: null;
-} {
-    return value == UserRole.siteOwner ? {
-        siteOwner: null
-    } : value == UserRole.materialsEngineer ? {
-        materialsEngineer: null
-    } : value == UserRole.chiefEngineer ? {
-        chiefEngineer: null
-    } : value == UserRole.siteEngineer ? {
-        siteEngineer: null
-    } : value;
-}
-function to_candid_variant_n2(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: UserRole__1): {
-    admin: null;
-} | {
-    user: null;
-} | {
-    guest: null;
-} {
-    return value == UserRole__1.admin ? {
-        admin: null
-    } : value == UserRole__1.user ? {
-        user: null
-    } : value == UserRole__1.guest ? {
-        guest: null
-    } : value;
-}
+
 export interface CreateActorOptions {
-    agent?: Agent;
-    agentOptions?: HttpAgentOptions;
-    actorOptions?: ActorConfig;
-    processError?: (error: unknown) => never;
+  agent?: Agent;
+  agentOptions?: HttpAgentOptions;
+  actorOptions?: ActorConfig;
+  processError?: (error: unknown) => never;
 }
-export function createActor(canisterId: string, _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, options: CreateActorOptions = {}): Backend {
-    const agent = options.agent || HttpAgent.createSync({
-        ...options.agentOptions
-    });
-    if (options.agent && options.agentOptions) {
-        console.warn("Detected both agent and agentOptions passed to createActor. Ignoring agentOptions and proceeding with the provided agent.");
+
+export class ExternalBlob {
+  _blob?: Uint8Array<ArrayBuffer> | null;
+  directURL: string;
+  onProgress?: (percentage: number) => void = undefined;
+
+  private constructor(directURL: string, blob: Uint8Array<ArrayBuffer> | null) {
+    if (blob) {
+      this._blob = blob;
     }
-    const actor = Actor.createActor<_SERVICE>(idlFactory, {
-        agent,
-        canisterId: canisterId,
-        ...options.actorOptions
+    this.directURL = directURL;
+  }
+
+  static fromURL(url: string): ExternalBlob {
+    return new ExternalBlob(url, null);
+  }
+
+  static fromBytes(blob: Uint8Array<ArrayBuffer>): ExternalBlob {
+    const url = URL.createObjectURL(
+      new Blob([new Uint8Array(blob)], { type: "application/octet-stream" }),
+    );
+    return new ExternalBlob(url, blob);
+  }
+
+  public async getBytes(): Promise<Uint8Array<ArrayBuffer>> {
+    if (this._blob) {
+      return this._blob;
+    }
+    const response = await fetch(this.directURL);
+    const blob = await response.blob();
+    this._blob = new Uint8Array(await blob.arrayBuffer());
+    return this._blob;
+  }
+
+  public getDirectURL(): string {
+    return this.directURL;
+  }
+
+  public withUploadProgress(
+    onProgress: (percentage: number) => void,
+  ): ExternalBlob {
+    this.onProgress = onProgress;
+    return this;
+  }
+}
+
+export class Backend implements backendInterface {
+  constructor(
+    private actor: ActorSubclass<_SERVICE>,
+    private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>,
+    private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>,
+    private processError?: (error: unknown) => never,
+  ) {}
+
+  private async call<T>(fn: () => Promise<T>): Promise<T> {
+    if (this.processError) {
+      try {
+        return await fn();
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    }
+    return fn();
+  }
+
+  async _initializeAccessControlWithSecret(secret: string): Promise<void> {
+    return this.call(() => this.actor._initializeAccessControlWithSecret(secret));
+  }
+
+  async addMaterial(
+    email: string,
+    projectId: bigint,
+    name: string,
+    unit: string,
+    stock: bigint,
+    reorderLevel: bigint,
+    priceUsd: bigint,
+    supplier: string,
+    ts: string,
+  ) {
+    return this.call(async () => {
+      const result = await this.actor.addMaterial(
+        email, projectId, name, unit, stock, reorderLevel, priceUsd, supplier, ts,
+      );
+      return result[0] ?? result;
     });
-    return new Backend(actor, _uploadFile, _downloadFile, options.processError);
+  }
+
+  async addProgress(
+    email: string,
+    projectId: bigint,
+    pct: bigint,
+    notes: string,
+    date: string,
+    photos: string[],
+    ts: string,
+  ) {
+    return this.call(async () => {
+      const result = await this.actor.addProgress(
+        email, projectId, pct, notes, date, photos, ts,
+      );
+      return result[0] ?? result;
+    });
+  }
+
+  async addWorker(
+    email: string,
+    projectId: bigint,
+    name: string,
+    skill: string,
+    dailyWage: bigint,
+    phone: string,
+    wEmail: string,
+    dialCode: string,
+    ts: string,
+  ) {
+    return this.call(async () => {
+      const result = await this.actor.addWorker(
+        email, projectId, name, skill, dailyWage, phone, wEmail, dialCode, ts,
+      );
+      return result[0] ?? result;
+    });
+  }
+
+  async approvePayroll(email: string, projectId: bigint, payrollId: bigint, ts: string) {
+    return this.call(async () => {
+      const result = await this.actor.approvePayroll(email, projectId, payrollId, ts);
+      return result[0] ?? result;
+    });
+  }
+
+  async assignCallerUserRole(user: Principal, role: UserRole): Promise<void> {
+    const variant = { [role]: null } as any;
+    return this.call(() => this.actor.assignCallerUserRole(user, variant));
+  }
+
+  async changePassword(email: string, oldPw: string, newPw: string) {
+    return this.call(async () => {
+      const result = await this.actor.changePassword(email, oldPw, newPw);
+      return result[0] ?? result;
+    });
+  }
+
+  async createProject(
+    creatorEmail: string,
+    name: string,
+    location: string,
+    startDate: string,
+    teamCode: string,
+    teamPassword: string,
+    budget: bigint,
+    ts: string,
+  ) {
+    return this.call(async () => {
+      const result = await this.actor.createProject(
+        creatorEmail, name, location, startDate, teamCode, teamPassword, budget, ts,
+      );
+      return result[0] ?? result;
+    });
+  }
+
+  async getAllProjects() {
+    return this.call(() => this.actor.getAllProjects());
+  }
+
+  async getAttendance(projectId: bigint) {
+    return this.call(() => this.actor.getAttendance(projectId));
+  }
+
+  async getAuditLog(email: string, projectId: bigint) {
+    return this.call(() => this.actor.getAuditLog(email, projectId));
+  }
+
+  async getCallerUserRole(): Promise<UserRole> {
+    return this.call(async () => {
+      const result = await this.actor.getCallerUserRole();
+      return Object.keys(result)[0] as UserRole;
+    });
+  }
+
+  async getDMChat(projectId: bigint, email1: string, email2: string) {
+    return this.call(() => this.actor.getDMChat(projectId, email1, email2));
+  }
+
+  async getGroupChat(projectId: bigint) {
+    return this.call(() => this.actor.getGroupChat(projectId));
+  }
+
+  async getMaterialTx(projectId: bigint) {
+    return this.call(() => this.actor.getMaterialTx(projectId));
+  }
+
+  async getMaterials(projectId: bigint) {
+    return this.call(() => this.actor.getMaterials(projectId));
+  }
+
+  async getNotifications(email: string) {
+    return this.call(() => this.actor.getNotifications(email));
+  }
+
+  async getPayroll(projectId: bigint) {
+    return this.call(() => this.actor.getPayroll(projectId));
+  }
+
+  async getProgress(projectId: bigint) {
+    return this.call(() => this.actor.getProgress(projectId));
+  }
+
+  async getProjectMembers(projectId: bigint) {
+    return this.call(async () => {
+      const result = await this.actor.getProjectMembers(projectId);
+      return result.map((m) => ({
+        ...m,
+        role: fromAppRoleVariant(m.role as any) as AppRole,
+      }));
+    });
+  }
+
+  async getUserProjects(email: string) {
+    return this.call(() => this.actor.getUserProjects(email));
+  }
+
+  async getWorkers(projectId: bigint) {
+    return this.call(() => this.actor.getWorkers(projectId));
+  }
+
+  async isCallerAdmin(): Promise<boolean> {
+    return this.call(() => this.actor.isCallerAdmin());
+  }
+
+  async joinProject(
+    email: string,
+    teamCode: string,
+    teamPassword: string,
+    role: { [K in AppRole]?: null },
+  ) {
+    return this.call(async () => {
+      const result = await this.actor.joinProject(
+        email, teamCode, teamPassword, role as any,
+      );
+      return result[0] ?? result;
+    });
+  }
+
+  async login(email: string, password: string) {
+    return this.call(async () => {
+      const result = await this.actor.login(email, password);
+      return result[0] ?? result;
+    });
+  }
+
+  async markAllNotifsRead(email: string) {
+    return this.call(async () => {
+      const result = await this.actor.markAllNotifsRead(email);
+      return result[0] ?? result;
+    });
+  }
+
+  async markAttendance(
+    email: string,
+    projectId: bigint,
+    workerId: bigint,
+    date: string,
+    status: string,
+  ) {
+    return this.call(async () => {
+      const result = await this.actor.markAttendance(
+        email, projectId, workerId, date, status,
+      );
+      return result[0] ?? result;
+    });
+  }
+
+  async markNotifRead(email: string, notifId: bigint) {
+    return this.call(async () => {
+      const result = await this.actor.markNotifRead(email, notifId);
+      return result[0] ?? result;
+    });
+  }
+
+  async postChat(
+    projectId: bigint,
+    senderEmail: string,
+    senderName: string,
+    senderRole: string,
+    text: string,
+    timestamp: string,
+    isDM: boolean,
+    receiverEmail: string,
+  ) {
+    return this.call(async () => {
+      const result = await this.actor.postChat(
+        projectId, senderEmail, senderName, senderRole, text, timestamp, isDM, receiverEmail,
+      );
+      return result[0] ?? result;
+    });
+  }
+
+  async recordTx(
+    email: string,
+    projectId: bigint,
+    materialId: bigint,
+    txType: string,
+    qty: bigint,
+    date: string,
+    notes: string,
+    ts: string,
+  ) {
+    return this.call(async () => {
+      const result = await this.actor.recordTx(
+        email, projectId, materialId, txType, qty, date, notes, ts,
+      );
+      return result[0] ?? result;
+    });
+  }
+
+  async register(
+    email: string,
+    name: string,
+    password: string,
+    nationality: string,
+    currency: string,
+    phone: string,
+    role: { [K in AppRole]?: null },
+  ) {
+    return this.call(async () => {
+      const result = await this.actor.register(
+        email, name, password, nationality, currency, phone, role as any,
+      );
+      return result[0] ?? result;
+    });
+  }
+
+  async seedDemo() {
+    return this.call(async () => {
+      const result = await this.actor.seedDemo();
+      return result[0] ?? result;
+    });
+  }
+
+  async submitPayroll(
+    email: string,
+    projectId: bigint,
+    period: string,
+    totalAmount: bigint,
+    ts: string,
+  ) {
+    return this.call(async () => {
+      const result = await this.actor.submitPayroll(
+        email, projectId, period, totalAmount, ts,
+      );
+      return result[0] ?? result;
+    });
+  }
+
+  async updateMaterial(
+    email: string,
+    projectId: bigint,
+    materialId: bigint,
+    name: string,
+    unit: string,
+    stock: bigint,
+    reorderLevel: bigint,
+    priceUsd: bigint,
+    supplier: string,
+  ) {
+    return this.call(async () => {
+      const result = await this.actor.updateMaterial(
+        email, projectId, materialId, name, unit, stock, reorderLevel, priceUsd, supplier,
+      );
+      return result[0] ?? result;
+    });
+  }
+
+  async updateProfile(
+    email: string,
+    password: string,
+    name: string,
+    nationality: string,
+    currency: string,
+    phone: string,
+  ) {
+    return this.call(async () => {
+      const result = await this.actor.updateProfile(
+        email, password, name, nationality, currency, phone,
+      );
+      return result[0] ?? result;
+    });
+  }
+
+  async updateTeamCode(
+    email: string,
+    projectId: bigint,
+    newCode: string,
+    newPassword: string,
+  ) {
+    return this.call(async () => {
+      const result = await this.actor.updateTeamCode(
+        email, projectId, newCode, newPassword,
+      );
+      return result[0] ?? result;
+    });
+  }
+
+  async updateWorker(
+    email: string,
+    projectId: bigint,
+    workerId: bigint,
+    name: string,
+    skill: string,
+    dailyWage: bigint,
+    phone: string,
+    wEmail: string,
+    dialCode: string,
+  ) {
+    return this.call(async () => {
+      const result = await this.actor.updateWorker(
+        email, projectId, workerId, name, skill, dailyWage, phone, wEmail, dialCode,
+      );
+      return result[0] ?? result;
+    });
+  }
+
+  async verifyProjectPassword(
+    email: string,
+    projectId: bigint,
+    teamPassword: string,
+  ) {
+    return this.call(async () => {
+      const result = await this.actor.verifyProjectPassword(
+        email, projectId, teamPassword,
+      );
+      return result[0] ?? result;
+    });
+  }
+}
+
+export function createActor(
+  canisterId: string,
+  _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>,
+  _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>,
+  options: CreateActorOptions = {},
+): Backend {
+  const agent =
+    options.agent ||
+    HttpAgent.createSync({
+      ...options.agentOptions,
+    });
+  if (options.agent && options.agentOptions) {
+    console.warn(
+      "Detected both agent and agentOptions passed to createActor. Ignoring agentOptions and proceeding with the provided agent.",
+    );
+  }
+  const actor = Actor.createActor<_SERVICE>(idlFactory, {
+    agent,
+    canisterId: canisterId,
+    ...options.actorOptions,
+  });
+  return new Backend(actor, _uploadFile, _downloadFile, options.processError);
 }

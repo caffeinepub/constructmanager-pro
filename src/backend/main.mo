@@ -1,339 +1,687 @@
 import Nat "mo:core/Nat";
-import Principal "mo:core/Principal";
-import Map "mo:core/Map";
-import Runtime "mo:core/Runtime";
 import Text "mo:core/Text";
-import Array "mo:core/Array";
-import Iter "mo:core/Iter";
 import List "mo:core/List";
+import Map "mo:core/Map";
+import Principal "mo:core/Principal";
 
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
-
 actor {
-  type UserRole = {
-    #siteEngineer;
-    #chiefEngineer;
-    #materialsEngineer;
-    #siteOwner;
-  };
+  // ─── TYPES ───────────────────────────────────────────────────────────────
 
-  type User = {
-    name : Text;
-    email : Text;
-    hashedPassword : Text;
-    role : UserRole;
-  };
+  type AppRole = { #chiefEngineer; #siteEngineer; #materialsEngineer; #siteOwner };
 
-  type Task = {
-    title : Text;
-    description : Text;
-    assignedTo : Principal;
-    status : Text;
-  };
-
-  type DailyLogEntry = {
-    date : Nat;
-    content : Text;
-  };
-
-  type Material = {
-    name : Text;
-    quantity : Nat;
-    reorderLevel : Nat;
+  type UserProfile = {
+    email       : Text;
+    name        : Text;
+    pwHash      : Text;
+    nationality : Text;
+    currency    : Text;
+    phone       : Text;
+    role        : AppRole;
   };
 
   type Project = {
-    name : Text;
-    site : Text;
-    status : Text;
-    budget : Nat;
+    id         : Nat;
+    name       : Text;
+    location   : Text;
+    startDate  : Text;
+    teamCode   : Text;
+    pwHash     : Text;
+    completion : Nat;
+    budget     : Nat;
+    createdBy  : Text;
   };
 
-  type MaterialRequest = {
-    materialName : Text;
-    quantity : Nat;
-    approved : Bool;
+  type ProjectMember = {
+    projectId : Nat;
+    email     : Text;
+    role      : AppRole;
   };
 
-  type DashboardSummary = {
-    projects : [Project];
-    attendanceSummary : Nat;
-    financialOverview : Nat;
-    teamList : [User];
+  type Worker = {
+    id        : Nat;
+    projectId : Nat;
+    name      : Text;
+    skill     : Text;
+    dailyWage : Nat;
+    phone     : Text;
+    wEmail    : Text;
+    dialCode  : Text;
   };
+
+  type AttendanceRecord = {
+    workerId  : Nat;
+    projectId : Nat;
+    date      : Text;
+    status    : Text;
+  };
+
+  type Material = {
+    id           : Nat;
+    projectId    : Nat;
+    name         : Text;
+    unit         : Text;
+    stock        : Nat;
+    reorderLevel : Nat;
+    priceUsd     : Nat;
+    supplier     : Text;
+  };
+
+  type MaterialTx = {
+    id         : Nat;
+    materialId : Nat;
+    projectId  : Nat;
+    txType     : Text;
+    qty        : Nat;
+    date       : Text;
+    byEmail    : Text;
+    notes      : Text;
+  };
+
+  type ProgressEntry = {
+    id        : Nat;
+    projectId : Nat;
+    pct       : Nat;
+    notes     : Text;
+    date      : Text;
+    byEmail   : Text;
+    photos    : [Text];
+  };
+
+  type PayrollRecord = {
+    id          : Nat;
+    projectId   : Nat;
+    period      : Text;
+    totalAmount : Nat;
+    status      : Text;
+    submittedBy : Text;
+    approvedBy  : Text;
+  };
+
+  type ChatMessage = {
+    id            : Nat;
+    projectId     : Nat;
+    senderEmail   : Text;
+    senderName    : Text;
+    senderRole    : Text;
+    receiverEmail : Text;
+    isDM          : Bool;
+    text          : Text;
+    timestamp     : Text;
+  };
+
+  type Notification = {
+    id        : Nat;
+    userEmail : Text;
+    nType     : Text;
+    content   : Text;
+    isRead    : Bool;
+    timestamp : Text;
+  };
+
+  type AuditEntry = {
+    id        : Nat;
+    userEmail : Text;
+    action    : Text;
+    area      : Text;
+    details   : Text;
+    timestamp : Text;
+  };
+
+  // ─── MIGRATION: old stable variables from previous version ──────────────
+  // These must be declared here (with the same names) so the upgrade
+  // compatibility check does not reject them as "implicitly discarded".
+  // They are unused in the new code and will be garbage-collected.
+  type _OldUserRole = { #siteEngineer; #chiefEngineer; #materialsEngineer; #siteOwner };
+  type _OldUser = { name : Text; email : Text; hashedPassword : Text; role : _OldUserRole };
+  type _OldMaterial = { name : Text; quantity : Nat; reorderLevel : Nat };
+  type _OldProject = { name : Text; site : Text; status : Text; budget : Nat };
+  type _OldTask = { title : Text; description : Text; assignedTo : Principal; status : Text };
+
+  var users         = Map.empty<Principal, _OldUser>();
+  var materials     = Map.empty<Nat, _OldMaterial>();
+  var projects      = Map.empty<Nat, _OldProject>();
+  var tasks         = Map.empty<Nat, _OldTask>();
+  var nextMaterialId : Nat = 0;
+  var nextProjectId  : Nat = 0;
+  var nextTaskId     : Nat = 0;
+
+  // ─── STATE ───────────────────────────────────────────────────────────────
+
+  stable var userList       : List.List<UserProfile>     = List.empty();
+  stable var projectList    : List.List<Project>         = List.empty();
+  stable var memberList     : List.List<ProjectMember>   = List.empty();
+  stable var workerList     : List.List<Worker>          = List.empty();
+  stable var attendanceList : List.List<AttendanceRecord> = List.empty();
+  stable var materialList   : List.List<Material>        = List.empty();
+  stable var txList         : List.List<MaterialTx>      = List.empty();
+  stable var progressList   : List.List<ProgressEntry>   = List.empty();
+  stable var payrollList    : List.List<PayrollRecord>   = List.empty();
+  stable var chatList       : List.List<ChatMessage>     = List.empty();
+  stable var notifList      : List.List<Notification>    = List.empty();
+  stable var auditList      : List.List<AuditEntry>      = List.empty();
+
+  stable var nextProjId   : Nat = 1;
+  stable var nextWrkId    : Nat = 1;
+  stable var nextMatId    : Nat = 1;
+  stable var nextTxId     : Nat = 1;
+  stable var nextProgId   : Nat = 1;
+  stable var nextPayId    : Nat = 1;
+  stable var nextChatId   : Nat = 1;
+  stable var nextNotifId  : Nat = 1;
+  stable var nextAuditId  : Nat = 1;
 
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
 
-  let users = Map.empty<Principal, User>();
-  let materials = Map.empty<Nat, Material>();
-  let projects = Map.empty<Nat, Project>();
-  let tasks = Map.empty<Nat, Task>();
-  var nextMaterialId = 0;
-  var nextProjectId = 0;
-  var nextTaskId = 0;
+  // ─── HELPERS ─────────────────────────────────────────────────────────────
 
-  // Helper function to get user role
-  private func getUserRole(principal : Principal) : ?UserRole {
-    switch (users.get(principal)) {
-      case (null) { null };
-      case (?user) { ?user.role };
-    };
+  func findUser(email : Text) : ?UserProfile {
+    userList.find(func(u : UserProfile) : Bool { u.email == email })
   };
 
-  // Helper function to check if caller has specific role
-  private func hasRole(caller : Principal, requiredRole : UserRole) : Bool {
-    switch (getUserRole(caller)) {
-      case (null) { false };
-      case (?role) { role == requiredRole };
-    };
+  func isMember(projectId : Nat, email : Text) : Bool {
+    memberList.any(func(m : ProjectMember) : Bool { m.projectId == projectId and m.email == email })
   };
 
-  public shared ({ caller }) func registerUser(name : Text, email : Text, password : Text, role : UserRole) : async () {
-    // Only admins can create users with elevated roles (non-SiteEngineer)
-    if (role != #siteEngineer) {
-      if (not (AccessControl.isAdmin(accessControlState, caller))) {
-        Runtime.trap("Unauthorized: Only admins can create users with elevated roles");
-      };
-    };
-
-    // Prevent anonymous registration
-    if (caller.isAnonymous()) {
-      Runtime.trap("Cannot register anonymous users. Authenticate first!");
-    };
-
-    // TODO: hash password, once build system is updated to support it!
-    let hashedPassword = password;
-    let user : User = { name; email; hashedPassword; role };
-    users.add(caller, user);
-
-    // Assign user role in AccessControl system
-    AccessControl.assignRole(accessControlState, caller, caller, #user);
+  func getRole(projectId : Nat, email : Text) : ?AppRole {
+    switch (memberList.find(func(m : ProjectMember) : Bool { m.projectId == projectId and m.email == email })) {
+      case (?m) { ?m.role };
+      case null  { null };
+    }
   };
 
-  public shared ({ caller }) func loginUser(email : Text, password : Text) : async () {
-    let authenticatedUser = users.values().find(func(user) { user.email == email });
-    switch (authenticatedUser) {
-      case (null) {
-        Runtime.trap("Login failed: User does not exist. Verify credentials or reach out to responsible administrator for an account");
-      };
-      case (?user) {
-        // TODO: hash password, once build system is updated to support it!
-        let hashedPassword = password;
-        if (user.hashedPassword != hashedPassword) {
-          Runtime.trap("Login failed: Incorrect password. Please try again");
+  func audit(email : Text, action : Text, area : Text, details : Text, ts : Text) {
+    auditList.add({ id = nextAuditId; userEmail = email; action; area; details; timestamp = ts });
+    nextAuditId += 1;
+  };
+
+  func notif(email : Text, nType : Text, content : Text, ts : Text) {
+    notifList.add({ id = nextNotifId; userEmail = email; nType; content; isRead = false; timestamp = ts });
+    nextNotifId += 1;
+  };
+
+  func roleText(r : AppRole) : Text {
+    switch (r) {
+      case (#chiefEngineer)    { "chiefEngineer" };
+      case (#siteEngineer)     { "siteEngineer" };
+      case (#materialsEngineer){ "materialsEngineer" };
+      case (#siteOwner)        { "siteOwner" };
+    }
+  };
+
+  // ─── AUTH ─────────────────────────────────────────────────────────────────
+
+  public func register(
+    email : Text, name : Text, password : Text,
+    nationality : Text, currency : Text, phone : Text, role : AppRole
+  ) : async { ok : Bool; message : Text } {
+    if (findUser(email) != null) {
+      return { ok = false; message = "Email already registered" };
+    };
+    userList.add({ email; name; pwHash = password; nationality; currency; phone; role });
+    { ok = true; message = "Registration successful" }
+  };
+
+  public func login(email : Text, password : Text)
+    : async { ok : Bool; message : Text; role : Text; name : Text; nationality : Text; currency : Text; phone : Text } {
+    switch (findUser(email)) {
+      case null { { ok = false; message = "User not found"; role = ""; name = ""; nationality = ""; currency = ""; phone = "" } };
+      case (?u) {
+        if (u.pwHash != password) {
+          return { ok = false; message = "Incorrect password"; role = ""; name = ""; nationality = ""; currency = ""; phone = "" };
         };
-        ();
+        { ok = true; message = "OK"; role = roleText(u.role); name = u.name; nationality = u.nationality; currency = u.currency; phone = u.phone }
       };
-    };
+    }
   };
 
-  public shared ({ caller }) func getCurrentUserProfile() : async User {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only registered users can access their profile");
-    };
-
-    switch (users.get(caller)) {
-      case (null) {
-        Runtime.trap("Not found: User does not exist. Please register first");
+  public func updateProfile(
+    email : Text, password : Text, name : Text, nationality : Text, currency : Text, phone : Text
+  ) : async { ok : Bool; message : Text } {
+    switch (findUser(email)) {
+      case null { { ok = false; message = "User not found" } };
+      case (?u) {
+        if (u.pwHash != password) { return { ok = false; message = "Incorrect password" } };
+        let updated : UserProfile = { email; name; pwHash = password; nationality; currency; phone; role = u.role };
+        memberList.mapInPlace(func(m : ProjectMember) : ProjectMember { m });
+        userList.mapInPlace(func(x : UserProfile) : UserProfile { if (x.email == email) updated else x });
+        { ok = true; message = "Profile updated" }
       };
-      case (?user) { user };
-    };
+    }
   };
 
-  public shared ({ caller }) func submitDailyLog(date : Nat, content : Text) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only registered users can submit daily logs");
-    };
-
-    // Only SiteEngineers can submit daily logs
-    if (not hasRole(caller, #siteEngineer)) {
-      Runtime.trap("Unauthorized: Only Site Engineers can submit daily logs");
-    };
-
-    switch (users.get(caller)) {
-      case (null) {
-        Runtime.trap("Not found: User does not exist. Please register first");
+  public func changePassword(email : Text, oldPw : Text, newPw : Text) : async { ok : Bool; message : Text } {
+    switch (findUser(email)) {
+      case null { { ok = false; message = "User not found" } };
+      case (?u) {
+        if (u.pwHash != oldPw) { return { ok = false; message = "Incorrect current password" } };
+        userList.mapInPlace(func(x : UserProfile) : UserProfile {
+          if (x.email == email) { { x with pwHash = newPw } } else x
+        });
+        { ok = true; message = "Password changed" }
       };
-      case (?user) {
-        let dailyLogEntry : DailyLogEntry = {
-          date;
-          content;
+    }
+  };
+
+  // ─── PROJECTS ─────────────────────────────────────────────────────────────
+
+  public func createProject(
+    creatorEmail : Text, name : Text, location : Text,
+    startDate : Text, teamCode : Text, teamPassword : Text, budget : Nat, ts : Text
+  ) : async { ok : Bool; message : Text; projectId : Nat } {
+    switch (findUser(creatorEmail)) {
+      case null { return { ok = false; message = "User not found"; projectId = 0 } };
+      case (?u) {
+        if (u.role != #chiefEngineer) {
+          return { ok = false; message = "Only Chief Engineers can create projects"; projectId = 0 };
         };
-        // In a real implementation, store this log entry
-        ();
       };
     };
+    if (projectList.any(func(p : Project) : Bool { p.teamCode == teamCode })) {
+      return { ok = false; message = "Team code already in use"; projectId = 0 };
+    };
+    let pid = nextProjId;
+    projectList.add({ id = pid; name; location; startDate; teamCode; pwHash = teamPassword; completion = 0; budget; createdBy = creatorEmail });
+    nextProjId += 1;
+    memberList.add({ projectId = pid; email = creatorEmail; role = #chiefEngineer });
+    audit(creatorEmail, "Create Project", "Projects", name, ts);
+    { ok = true; message = "Project created"; projectId = pid }
   };
 
-  public query ({ caller }) func getInventory() : async [Material] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only registered users can access inventory");
+  public func joinProject(
+    email : Text, teamCode : Text, teamPassword : Text, role : AppRole
+  ) : async { ok : Bool; message : Text; projectId : Nat } {
+    if (findUser(email) == null) {
+      return { ok = false; message = "User not found"; projectId = 0 };
     };
-
-    // Only MaterialsEngineers can view inventory
-    if (not hasRole(caller, #materialsEngineer)) {
-      Runtime.trap("Unauthorized: Only Materials Engineers can access inventory");
-    };
-
-    materials.values().toArray();
-  };
-
-  public shared ({ caller }) func updateStock(materialId : Nat, quantity : Nat) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only registered users can update stock");
-    };
-
-    // Only MaterialsEngineers can update stock
-    if (not hasRole(caller, #materialsEngineer)) {
-      Runtime.trap("Unauthorized: Only Materials Engineers can update stock levels");
-    };
-
-    switch (materials.get(materialId)) {
-      case (null) {
-        Runtime.trap("Not found: Material does not exist. Please contact administrator");
+    switch (projectList.find(func(p : Project) : Bool { p.teamCode == teamCode })) {
+      case null { { ok = false; message = "Invalid team code"; projectId = 0 } };
+      case (?proj) {
+        if (proj.pwHash != teamPassword) {
+          return { ok = false; message = "Wrong team password"; projectId = 0 };
+        };
+        if (isMember(proj.id, email)) {
+          return { ok = true; message = "Already a member"; projectId = proj.id };
+        };
+        memberList.add({ projectId = proj.id; email; role });
+        { ok = true; message = "Joined project"; projectId = proj.id }
       };
-      case (?material) {
-        let updatedMaterial = { material with quantity };
-        materials.add(materialId, updatedMaterial);
+    }
+  };
+
+  public func verifyProjectPassword(email : Text, projectId : Nat, teamPassword : Text)
+    : async { ok : Bool; message : Text } {
+    if (not isMember(projectId, email)) {
+      return { ok = false; message = "Not a member" };
+    };
+    switch (projectList.find(func(p : Project) : Bool { p.id == projectId })) {
+      case null { { ok = false; message = "Project not found" } };
+      case (?proj) {
+        if (proj.pwHash == teamPassword) { { ok = true; message = "OK" } }
+        else { { ok = false; message = "Wrong team password" } }
       };
-    };
+    }
   };
 
-  public shared ({ caller }) func createReorderAlert(materialId : Nat, reorderLevel : Nat) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only registered users can create reorder alerts");
-    };
+  public query func getUserProjects(email : Text) : async [Project] {
+    let myIds = memberList.filter(func(m : ProjectMember) : Bool { m.email == email })
+      .map<ProjectMember, Nat>(func(m : ProjectMember) : Nat { m.projectId });
+    projectList.filter(func(p : Project) : Bool {
+      myIds.any(func(id : Nat) : Bool { id == p.id })
+    }).toArray()
+  };
 
-    // Only MaterialsEngineers can create reorder alerts
-    if (not hasRole(caller, #materialsEngineer)) {
-      Runtime.trap("Unauthorized: Only Materials Engineers can create reorder alerts");
-    };
+  public query func getAllProjects() : async [Project] {
+    projectList.toArray()
+  };
 
-    switch (materials.get(materialId)) {
-      case (null) {
-        Runtime.trap("Not found: Material does not exist. Please contact administrator");
+  public query func getProjectMembers(projectId : Nat) : async [ProjectMember] {
+    memberList.filter(func(m : ProjectMember) : Bool { m.projectId == projectId }).toArray()
+  };
+
+  public func updateTeamCode(
+    email : Text, projectId : Nat, newCode : Text, newPassword : Text
+  ) : async { ok : Bool; message : Text } {
+    switch (getRole(projectId, email)) {
+      case (?#chiefEngineer) {};
+      case _ { return { ok = false; message = "Only Chief Engineer can change code/password" } };
+    };
+    if (projectList.any(func(p : Project) : Bool { p.teamCode == newCode and p.id != projectId })) {
+      return { ok = false; message = "Team code already in use" };
+    };
+    projectList.mapInPlace(func(p : Project) : Project {
+      if (p.id == projectId) { { p with teamCode = newCode; pwHash = newPassword } } else p
+    });
+    { ok = true; message = "Team code and password updated" }
+  };
+
+  // ─── WORKERS ──────────────────────────────────────────────────────────────
+
+  public func addWorker(
+    email : Text, projectId : Nat,
+    name : Text, skill : Text, dailyWage : Nat, phone : Text, wEmail : Text, dialCode : Text, ts : Text
+  ) : async { ok : Bool; message : Text; workerId : Nat } {
+    switch (getRole(projectId, email)) {
+      case (?#siteEngineer) {};
+      case (?#chiefEngineer) {};
+      case _ { return { ok = false; message = "Only Site/Chief Engineers can add workers"; workerId = 0 } };
+    };
+    let wid = nextWrkId;
+    workerList.add({ id = wid; projectId; name; skill; dailyWage; phone; wEmail; dialCode });
+    nextWrkId += 1;
+    audit(email, "Add Worker", "Labour", name, ts);
+    { ok = true; message = "Worker added"; workerId = wid }
+  };
+
+  public func updateWorker(
+    email : Text, projectId : Nat, workerId : Nat,
+    name : Text, skill : Text, dailyWage : Nat, phone : Text, wEmail : Text, dialCode : Text
+  ) : async { ok : Bool; message : Text } {
+    switch (getRole(projectId, email)) {
+      case (?#siteEngineer) {};
+      case (?#chiefEngineer) {};
+      case _ { return { ok = false; message = "Only Site/Chief Engineers can edit workers" } };
+    };
+    workerList.mapInPlace(func(w : Worker) : Worker {
+      if (w.id == workerId and w.projectId == projectId) {
+        { w with name; skill; dailyWage; phone; wEmail; dialCode }
+      } else w
+    });
+    { ok = true; message = "Worker updated" }
+  };
+
+  public query func getWorkers(projectId : Nat) : async [Worker] {
+    workerList.filter(func(w : Worker) : Bool { w.projectId == projectId }).toArray()
+  };
+
+  // ─── ATTENDANCE ───────────────────────────────────────────────────────────
+
+  public func markAttendance(
+    email : Text, projectId : Nat, workerId : Nat, date : Text, status : Text
+  ) : async { ok : Bool; message : Text } {
+    switch (getRole(projectId, email)) {
+      case (?#siteEngineer) {};
+      case (?#chiefEngineer) {};
+      case _ { return { ok = false; message = "Only Site/Chief Engineers can mark attendance" } };
+    };
+    // Remove existing record for same worker+date, then add updated one
+    attendanceList.retain(func(a : AttendanceRecord) : Bool {
+      not (a.workerId == workerId and a.date == date)
+    });
+    attendanceList.add({ workerId; projectId; date; status });
+    { ok = true; message = "Attendance marked" }
+  };
+
+  public query func getAttendance(projectId : Nat) : async [AttendanceRecord] {
+    attendanceList.filter(func(a : AttendanceRecord) : Bool { a.projectId == projectId }).toArray()
+  };
+
+  // ─── PAYROLL ──────────────────────────────────────────────────────────────
+
+  public func submitPayroll(
+    email : Text, projectId : Nat, period : Text, totalAmount : Nat, ts : Text
+  ) : async { ok : Bool; message : Text; payrollId : Nat } {
+    switch (getRole(projectId, email)) {
+      case (?#siteEngineer) {};
+      case (?#chiefEngineer) {};
+      case _ { return { ok = false; message = "Only Site/Chief Engineers can submit payroll"; payrollId = 0 } };
+    };
+    let pid = nextPayId;
+    payrollList.add({ id = pid; projectId; period; totalAmount; status = "pending"; submittedBy = email; approvedBy = "" });
+    nextPayId += 1;
+    audit(email, "Submit Payroll", "Labour", period, ts);
+    // Notify chief engineers
+    memberList.filter(func(m : ProjectMember) : Bool { m.projectId == projectId and m.role == #chiefEngineer })
+      .forEach(func(m : ProjectMember) {
+        notif(m.email, "payroll", "Payroll submitted for " # period, ts)
+      });
+    { ok = true; message = "Payroll submitted"; payrollId = pid }
+  };
+
+  public func approvePayroll(
+    email : Text, projectId : Nat, payrollId : Nat, ts : Text
+  ) : async { ok : Bool; message : Text } {
+    switch (getRole(projectId, email)) {
+      case (?#chiefEngineer) {};
+      case _ { return { ok = false; message = "Only Chief Engineers can approve payroll" } };
+    };
+    payrollList.mapInPlace(func(p : PayrollRecord) : PayrollRecord {
+      if (p.id == payrollId and p.projectId == projectId) {
+        { p with status = "approved"; approvedBy = email }
+      } else p
+    });
+    audit(email, "Approve Payroll", "Labour", payrollId.toText(), ts);
+    { ok = true; message = "Payroll approved" }
+  };
+
+  public query func getPayroll(projectId : Nat) : async [PayrollRecord] {
+    payrollList.filter(func(p : PayrollRecord) : Bool { p.projectId == projectId }).toArray()
+  };
+
+  // ─── MATERIALS ────────────────────────────────────────────────────────────
+
+  public func addMaterial(
+    email : Text, projectId : Nat,
+    name : Text, unit : Text, stock : Nat, reorderLevel : Nat, priceUsd : Nat, supplier : Text, ts : Text
+  ) : async { ok : Bool; message : Text; materialId : Nat } {
+    switch (getRole(projectId, email)) {
+      case (?#materialsEngineer) {};
+      case (?#chiefEngineer) {};
+      case _ { return { ok = false; message = "Only Materials/Chief Engineers can add materials"; materialId = 0 } };
+    };
+    let mid = nextMatId;
+    materialList.add({ id = mid; projectId; name; unit; stock; reorderLevel; priceUsd; supplier });
+    nextMatId += 1;
+    audit(email, "Add Material", "Materials", name, ts);
+    { ok = true; message = "Material added"; materialId = mid }
+  };
+
+  public func updateMaterial(
+    email : Text, projectId : Nat, materialId : Nat,
+    name : Text, unit : Text, stock : Nat, reorderLevel : Nat, priceUsd : Nat, supplier : Text
+  ) : async { ok : Bool; message : Text } {
+    switch (getRole(projectId, email)) {
+      case (?#materialsEngineer) {};
+      case (?#chiefEngineer) {};
+      case _ { return { ok = false; message = "Only Materials/Chief Engineers can edit materials" } };
+    };
+    materialList.mapInPlace(func(m : Material) : Material {
+      if (m.id == materialId and m.projectId == projectId) {
+        { m with name; unit; stock; reorderLevel; priceUsd; supplier }
+      } else m
+    });
+    { ok = true; message = "Material updated" }
+  };
+
+  public func recordTx(
+    email : Text, projectId : Nat, materialId : Nat,
+    txType : Text, qty : Nat, date : Text, notes : Text, ts : Text
+  ) : async { ok : Bool; message : Text } {
+    switch (getRole(projectId, email)) {
+      case (?#materialsEngineer) {};
+      case (?#chiefEngineer) {};
+      case _ { return { ok = false; message = "Only Materials/Chief Engineers can record transactions" } };
+    };
+    // Update stock
+    var lowStock = false;
+    var matName = "";
+    materialList.mapInPlace(func(m : Material) : Material {
+      if (m.id == materialId and m.projectId == projectId) {
+        let newStock = if (txType == "inward") { m.stock + qty }
+                       else if (m.stock >= qty) { m.stock - qty } else { 0 };
+        if (newStock <= m.reorderLevel) {
+          lowStock := true;
+          matName := m.name;
+        };
+        { m with stock = newStock }
+      } else m
+    });
+    if (lowStock) {
+      memberList.filter(func(m : ProjectMember) : Bool {
+        m.projectId == projectId and (m.role == #materialsEngineer or m.role == #chiefEngineer)
+      }).forEach(func(m : ProjectMember) {
+        notif(m.email, "lowstock", matName # " is running low", ts)
+      });
+    };
+    txList.add({ id = nextTxId; materialId; projectId; txType; qty; date; byEmail = email; notes });
+    nextTxId += 1;
+    { ok = true; message = "Transaction recorded" }
+  };
+
+  public query func getMaterials(projectId : Nat) : async [Material] {
+    materialList.filter(func(m : Material) : Bool { m.projectId == projectId }).toArray()
+  };
+
+  public query func getMaterialTx(projectId : Nat) : async [MaterialTx] {
+    txList.filter(func(t : MaterialTx) : Bool { t.projectId == projectId }).toArray()
+  };
+
+  // ─── PROGRESS ─────────────────────────────────────────────────────────────
+
+  public func addProgress(
+    email : Text, projectId : Nat,
+    pct : Nat, notes : Text, date : Text, photos : [Text], ts : Text
+  ) : async { ok : Bool; message : Text; entryId : Nat } {
+    switch (getRole(projectId, email)) {
+      case (?#siteEngineer) {};
+      case (?#chiefEngineer) {};
+      case _ { return { ok = false; message = "Only Site/Chief Engineers can update progress"; entryId = 0 } };
+    };
+    let eid = nextProgId;
+    progressList.add({ id = eid; projectId; pct; notes; date; byEmail = email; photos });
+    nextProgId += 1;
+    projectList.mapInPlace(func(p : Project) : Project {
+      if (p.id == projectId) { { p with completion = pct } } else p
+    });
+    audit(email, "Update Progress", "Progress", pct.toText() # "%", ts);
+    { ok = true; message = "Progress added"; entryId = eid }
+  };
+
+  public query func getProgress(projectId : Nat) : async [ProgressEntry] {
+    progressList.filter(func(e : ProgressEntry) : Bool { e.projectId == projectId }).toArray()
+  };
+
+  // ─── CHAT ─────────────────────────────────────────────────────────────────
+
+  public func postChat(
+    projectId : Nat, senderEmail : Text, senderName : Text, senderRole : Text,
+    text : Text, timestamp : Text, isDM : Bool, receiverEmail : Text
+  ) : async { ok : Bool; messageId : Nat } {
+    if (not isMember(projectId, senderEmail)) {
+      return { ok = false; messageId = 0 };
+    };
+    let mid = nextChatId;
+    chatList.add({ id = mid; projectId; senderEmail; senderName; senderRole; receiverEmail; isDM; text; timestamp });
+    nextChatId += 1;
+    { ok = true; messageId = mid }
+  };
+
+  public query func getGroupChat(projectId : Nat) : async [ChatMessage] {
+    chatList.filter(func(m : ChatMessage) : Bool { m.projectId == projectId and not m.isDM }).toArray()
+  };
+
+  public query func getDMChat(projectId : Nat, email1 : Text, email2 : Text) : async [ChatMessage] {
+    chatList.filter(func(m : ChatMessage) : Bool {
+      m.projectId == projectId and m.isDM and
+      ((m.senderEmail == email1 and m.receiverEmail == email2) or
+       (m.senderEmail == email2 and m.receiverEmail == email1))
+    }).toArray()
+  };
+
+  // ─── NOTIFICATIONS ────────────────────────────────────────────────────────
+
+  public query func getNotifications(email : Text) : async [Notification] {
+    notifList.filter(func(n : Notification) : Bool { n.userEmail == email }).toArray()
+  };
+
+  public func markNotifRead(email : Text, notifId : Nat) : async { ok : Bool } {
+    notifList.mapInPlace(func(n : Notification) : Notification {
+      if (n.id == notifId and n.userEmail == email) { { n with isRead = true } } else n
+    });
+    { ok = true }
+  };
+
+  public func markAllNotifsRead(email : Text) : async { ok : Bool } {
+    notifList.mapInPlace(func(n : Notification) : Notification {
+      if (n.userEmail == email) { { n with isRead = true } } else n
+    });
+    { ok = true }
+  };
+
+  // ─── AUDIT LOG ────────────────────────────────────────────────────────────
+
+  public query func getAuditLog(email : Text, projectId : Nat) : async [AuditEntry] {
+    switch (getRole(projectId, email)) {
+      case (?#chiefEngineer) {
+        let emails = memberList
+          .filter(func(m : ProjectMember) : Bool { m.projectId == projectId })
+          .map(func(m : ProjectMember) : Text { m.email })
+          .toArray();
+        auditList.filter(func(a : AuditEntry) : Bool {
+          var found = false;
+          for (e in emails.vals()) { if (e == a.userEmail) found := true };
+          found
+        }).toArray()
       };
-      case (?material) {
-        let updatedMaterial = { material with reorderLevel };
-        materials.add(materialId, updatedMaterial);
-      };
-    };
+      case _ { [] };
+    }
   };
 
-  public query ({ caller }) func getAllUsers() : async [(Principal, User)] {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Unauthorized: Only admins can access the list of all users");
+  // ─── SEED DEMO ────────────────────────────────────────────────────────────
+
+  public func seedDemo() : async { ok : Bool } {
+    if (userList.any(func(u : UserProfile) : Bool { u.email == "ce@demo.com" })) {
+      return { ok = true };
     };
-    users.toArray();
-  };
+    userList.add({ email = "ce@demo.com"; name = "Alex Chen (Demo CE)"; pwHash = "ChiefEng@123"; nationality = "US"; currency = "USD"; phone = "+1 555-0100"; role = #chiefEngineer });
+    userList.add({ email = "se@demo.com"; name = "Sam Patel (Demo SE)"; pwHash = "SiteEng@123"; nationality = "IN"; currency = "INR"; phone = "+91 98765 43210"; role = #siteEngineer });
+    userList.add({ email = "me@demo.com"; name = "Maria Lopez (Demo ME)"; pwHash = "MatEng@123"; nationality = "ES"; currency = "EUR"; phone = "+34 612 345 678"; role = #materialsEngineer });
+    userList.add({ email = "so@demo.com"; name = "John Smith (Demo SO)"; pwHash = "SiteOwner@123"; nationality = "GB"; currency = "GBP"; phone = "+44 7700 900123"; role = #siteOwner });
 
-  public query ({ caller }) func getSiteEngineerTasks(siteEngineer : Principal) : async [Task] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only registered users can access tasks");
-    };
+    projectList.add({ id = 1; name = "Project Alpha"; location = "Mumbai, India"; startDate = "2026-01-01"; teamCode = "ALPHA42"; pwHash = "ALPHA42"; completion = 45; budget = 5000000; createdBy = "ce@demo.com" });
+    projectList.add({ id = 2; name = "Project Beta"; location = "Bangalore, India"; startDate = "2026-02-01"; teamCode = "BETA56"; pwHash = "BETA56"; completion = 20; budget = 3000000; createdBy = "ce@demo.com" });
+    projectList.add({ id = 3; name = "Tower 99"; location = "Dubai, UAE"; startDate = "2026-03-01"; teamCode = "TOWER99"; pwHash = "TOWER99"; completion = 60; budget = 10000000; createdBy = "ce@demo.com" });
+    nextProjId := 4;
 
-    // Users can only view their own tasks unless they are admin
-    if (caller != siteEngineer and not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Can only view your own tasks");
-    };
+    memberList.add({ projectId = 1; email = "ce@demo.com"; role = #chiefEngineer });
+    memberList.add({ projectId = 1; email = "se@demo.com"; role = #siteEngineer });
+    memberList.add({ projectId = 1; email = "me@demo.com"; role = #materialsEngineer });
+    memberList.add({ projectId = 1; email = "so@demo.com"; role = #siteOwner });
+    memberList.add({ projectId = 2; email = "ce@demo.com"; role = #chiefEngineer });
+    memberList.add({ projectId = 2; email = "se@demo.com"; role = #siteEngineer });
+    memberList.add({ projectId = 3; email = "ce@demo.com"; role = #chiefEngineer });
+    memberList.add({ projectId = 3; email = "me@demo.com"; role = #materialsEngineer });
 
-    tasks.values().filter(func(task) { task.assignedTo == siteEngineer }).toArray();
-  };
+    workerList.add({ id = 1; projectId = 1; name = "Ramesh Kumar"; skill = "Mason"; dailyWage = 800; phone = "9876543210"; wEmail = ""; dialCode = "+91" });
+    workerList.add({ id = 2; projectId = 1; name = "Suresh Singh"; skill = "Carpenter"; dailyWage = 750; phone = "9876543211"; wEmail = ""; dialCode = "+91" });
+    workerList.add({ id = 3; projectId = 1; name = "Priya Nair"; skill = "Plumber"; dailyWage = 850; phone = "9876543212"; wEmail = ""; dialCode = "+91" });
+    workerList.add({ id = 4; projectId = 2; name = "Ahmed Ali"; skill = "Electrician"; dailyWage = 900; phone = "9876543213"; wEmail = ""; dialCode = "+91" });
+    nextWrkId := 5;
 
-  public query ({ caller }) func getFullDashboardSummary() : async DashboardSummary {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only registered users can access dashboard");
-    };
+    materialList.add({ id = 1; projectId = 1; name = "Cement"; unit = "bags"; stock = 200; reorderLevel = 50; priceUsd = 8; supplier = "ABC Cement" });
+    materialList.add({ id = 2; projectId = 1; name = "Steel Rebar"; unit = "tons"; stock = 15; reorderLevel = 5; priceUsd = 650; supplier = "Steel Corp" });
+    materialList.add({ id = 3; projectId = 1; name = "Sand"; unit = "cubic m"; stock = 80; reorderLevel = 20; priceUsd = 45; supplier = "Local Quarry" });
+    materialList.add({ id = 4; projectId = 2; name = "Bricks"; unit = "pieces"; stock = 5000; reorderLevel = 1000; priceUsd = 1; supplier = "Brick Works" });
+    materialList.add({ id = 5; projectId = 3; name = "Concrete"; unit = "cubic m"; stock = 120; reorderLevel = 30; priceUsd = 120; supplier = "Ready Mix" });
+    nextMatId := 6;
 
-    // Only SiteOwners can view full dashboard
-    if (not hasRole(caller, #siteOwner)) {
-      Runtime.trap("Unauthorized: Only Site Owners can access the full dashboard summary");
-    };
+    progressList.add({ id = 1; projectId = 1; pct = 30; notes = "Foundation completed"; date = "2026-02-01"; byEmail = "se@demo.com"; photos = [] });
+    progressList.add({ id = 2; projectId = 1; pct = 45; notes = "Ground floor slab poured"; date = "2026-03-01"; byEmail = "se@demo.com"; photos = [] });
+    progressList.add({ id = 3; projectId = 2; pct = 20; notes = "Excavation in progress"; date = "2026-02-15"; byEmail = "se@demo.com"; photos = [] });
+    nextProgId := 4;
 
-    let projectList = projects.values().toArray();
-    let teamList = users.values().toArray();
+    attendanceList.add({ workerId = 1; projectId = 1; date = "2026-04-01"; status = "present" });
+    attendanceList.add({ workerId = 2; projectId = 1; date = "2026-04-01"; status = "present" });
+    attendanceList.add({ workerId = 3; projectId = 1; date = "2026-04-01"; status = "absent" });
+    attendanceList.add({ workerId = 1; projectId = 1; date = "2026-04-02"; status = "present" });
 
-    {
-      projects = projectList;
-      attendanceSummary = 0;
-      financialOverview = 0;
-      teamList;
-    };
-  };
+    chatList.add({ id = 1; projectId = 1; senderEmail = "ce@demo.com"; senderName = "Alex Chen"; senderRole = "Chief Engineer"; receiverEmail = ""; isDM = false; text = "Good morning team! Foundation work looks great."; timestamp = "2026-04-01T09:00:00Z" });
+    chatList.add({ id = 2; projectId = 1; senderEmail = "se@demo.com"; senderName = "Sam Patel"; senderRole = "Site Engineer"; receiverEmail = ""; isDM = false; text = "Thanks! Cement delivery scheduled for tomorrow."; timestamp = "2026-04-01T09:15:00Z" });
+    nextChatId := 3;
 
-  public shared ({ caller }) func approveMaterialRequest(materialName : Text, quantity : Nat) : async () {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only registered users can approve material requests");
-    };
-
-    // Only ChiefEngineers can approve material requests
-    if (not hasRole(caller, #chiefEngineer)) {
-      Runtime.trap("Unauthorized: Only Chief Engineers can approve material requests");
-    };
-
-    let materialRequest : MaterialRequest = { materialName; quantity; approved = true };
-    // In a real implementation, store this approval
-    ();
-  };
-
-  public query ({ caller }) func getProjectOverview() : async [Project] {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only registered users can access project overview");
-    };
-
-    // Only ChiefEngineers can view project overview
-    if (not hasRole(caller, #chiefEngineer)) {
-      Runtime.trap("Unauthorized: Only Chief Engineers can access the project overview");
-    };
-
-    projects.values().toArray();
-  };
-
-  public shared ({ caller }) func addMaterial(name : Text, quantity : Nat, reorderLevel : Nat) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only registered users can add materials");
-    };
-
-    // Only MaterialsEngineers and admins can add materials
-    if (not hasRole(caller, #materialsEngineer) and not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only Materials Engineers can add materials");
-    };
-
-    let materialId = nextMaterialId;
-    let material : Material = { name; quantity; reorderLevel };
-    materials.add(materialId, material);
-    nextMaterialId += 1;
-    materialId;
-  };
-
-  public shared ({ caller }) func addProject(name : Text, site : Text, status : Text, budget : Nat) : async Nat {
-    if (not (AccessControl.isAdmin(accessControlState, caller))) {
-      Runtime.trap("Unauthorized: Only admins can add projects");
-    };
-    let projectId = nextProjectId;
-    let project : Project = { name; site; status; budget };
-    projects.add(projectId, project);
-    nextProjectId += 1;
-    projectId;
-  };
-
-  public shared ({ caller }) func assignTask(title : Text, description : Text, assignedTo : Principal, status : Text) : async Nat {
-    if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
-      Runtime.trap("Unauthorized: Only registered users can assign tasks");
-    };
-
-    // Only ChiefEngineers and admins can assign tasks
-    if (not hasRole(caller, #chiefEngineer) and not AccessControl.isAdmin(accessControlState, caller)) {
-      Runtime.trap("Unauthorized: Only Chief Engineers can assign tasks");
-    };
-
-    let taskId = nextTaskId;
-    let task : Task = { title; description; assignedTo; status };
-    tasks.add(taskId, task);
-    nextTaskId += 1;
-    taskId;
+    { ok = true }
   };
 };

@@ -43,6 +43,7 @@ const navByRole: Record<UserRole, NavItem[]> = {
     { label: "Notifications", tab: "notifications", icon: Bell },
     { label: "Admin Panel", tab: "admin", icon: Shield },
     { label: "Audit Log", tab: "audit", icon: BookOpen },
+    { label: "Group Chat", tab: "chat", icon: MessageSquare },
   ],
   siteOwner: [
     { label: "Overview", tab: "overview", icon: Home },
@@ -51,12 +52,14 @@ const navByRole: Record<UserRole, NavItem[]> = {
     { label: "Progress", tab: "progress", icon: BarChart2 },
     { label: "Reports", tab: "reports", icon: FileText },
     { label: "Notifications", tab: "notifications", icon: Bell },
+    { label: "Group Chat", tab: "chat", icon: MessageSquare },
   ],
   siteEngineer: [
     { label: "Overview", tab: "overview", icon: Home },
     { label: "Attendance", tab: "attendance", icon: Users },
     { label: "Daily Progress", tab: "progress", icon: ClipboardList },
     { label: "Notifications", tab: "notifications", icon: Bell },
+    { label: "Group Chat", tab: "chat", icon: MessageSquare },
   ],
   materialsEngineer: [
     { label: "Overview", tab: "overview", icon: Home },
@@ -64,6 +67,7 @@ const navByRole: Record<UserRole, NavItem[]> = {
     { label: "Material Inward", tab: "grn", icon: ClipboardList },
     { label: "Consumption", tab: "outward", icon: FileText },
     { label: "Notifications", tab: "notifications", icon: Bell },
+    { label: "Group Chat", tab: "chat", icon: MessageSquare },
   ],
 };
 

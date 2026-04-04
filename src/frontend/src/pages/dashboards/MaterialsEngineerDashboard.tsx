@@ -29,6 +29,7 @@ import {
   AlertTriangle,
   CheckCircle,
   Download,
+  FileSpreadsheet,
   Package,
   Plus,
   TrendingDown,
@@ -39,7 +40,9 @@ import { toast } from "sonner";
 import { useAuth } from "../../AuthContext";
 import { type Material, useProjectData } from "../../ProjectDataContext";
 import DashboardLayout from "../../components/DashboardLayout";
+import InlineChatPanel from "../../components/InlineChatPanel";
 import { MASTER_MATERIALS } from "../../data/masterMaterials";
+import { exportMaterialsCSV } from "../../utils/csvExport";
 import { convertFromUSD } from "../../utils/currency";
 import { exportMaterialsPDF } from "../../utils/pdfExport";
 
@@ -470,6 +473,19 @@ export default function MaterialsEngineerDashboard() {
             >
               <Download className="w-4 h-4 mr-1" /> Export PDF
             </Button>
+            <Button
+              variant="outline"
+              className="border-[#10b981] text-[#10b981] hover:bg-[#10b981]/10"
+              onClick={() =>
+                exportMaterialsCSV(
+                  data.materials,
+                  activeProject?.name ?? "Project",
+                )
+              }
+              data-ocid="me.materials.secondary_button"
+            >
+              <FileSpreadsheet className="w-4 h-4 mr-1" /> Export CSV
+            </Button>
           </div>
           {filteredMaterials.length === 0 ? (
             <div
@@ -749,6 +765,18 @@ export default function MaterialsEngineerDashboard() {
                 );
               })
           )}
+        </div>
+      )}
+
+      {/* CHAT */}
+      {activeTab === "chat" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-[#0f172a]">
+              Project Group Chat
+            </h2>
+          </div>
+          <InlineChatPanel />
         </div>
       )}
 

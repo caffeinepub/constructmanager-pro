@@ -25,9 +25,12 @@ import SiteOwnerDashboard from "./pages/dashboards/SiteOwnerDashboard";
 const queryClient = new QueryClient();
 
 function AppWithProjectData({ children }: { children: React.ReactNode }) {
-  const { activeProject } = useAuth();
+  const { activeProject, user } = useAuth();
   return (
-    <ProjectDataProvider projectId={activeProject?.id ?? null}>
+    <ProjectDataProvider
+      projectId={activeProject?.id ?? null}
+      userEmail={user?.email}
+    >
       {children}
     </ProjectDataProvider>
   );

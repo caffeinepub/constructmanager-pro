@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Building2,
@@ -29,7 +30,7 @@ import {
   Unlock,
   UserPlus,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   type Project,
@@ -38,6 +39,11 @@ import {
   roleToLabel,
   useAuth,
 } from "../AuthContext";
+import {
+  canisterCreateProject,
+  canisterGetAllProjects,
+  canisterGetUserProjects,
+} from "../canister";
 
 const roleColor: Record<UserRole, string> = {
   chiefEngineer: "#f97316",
@@ -52,10 +58,32 @@ const statusBg: Record<string, string> = {
   Completed: "bg-slate-100 text-slate-600",
 };
 
+function mapCanisterProject(
+  p: Awaited<ReturnType<typeof canisterGetUserProjects>>[number],
+  userEmail: string,
+  userRole: UserRole,
+): Project {
+  return {
+    id: String(Number(p.id)),
+    name: p.name,
+    description: p.location,
+    teamCode: p.teamCode,
+    teamPassword: "", // never exposed from canister
+    status: "Active" as const,
+    budget: Number(p.budget),
+    location: p.location,
+    members: [
+      // We include current user as member with their role
+      { email: userEmail, name: userEmail, role: userRole },
+    ],
+  };
+}
+
 export default function ProjectsDashboard() {
   const {
     user,
     projects,
+    setProjects,
     cachedCodes,
     enterProject,
     setActiveProject,
@@ -65,11 +93,12 @@ export default function ProjectsDashboard() {
   } = useAuth();
   const navigate = useNavigate();
 
-  // Passcode entry
+  const [loadingProjects, setLoadingProjects] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [teamCode, setTeamCode] = useState("");
-  const [codeError, setCodeError] = useState("");
-  const [showCode, setShowCode] = useState(false);
+  const [teamPassword, setTeamPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [enteringProject, setEnteringProject] = useState(false);
 
   // CE: show all vs my projects
   const [showAll, setShowAll] = useState(false);
@@ -85,53 +114,82 @@ export default function ProjectsDashboard() {
   const [newStatus, setNewStatus] = useState<
     "Active" | "On Hold" | "Completed"
   >("Active");
+  const [creatingProject, setCreatingProject] = useState(false);
 
   // Join project modal
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinCode, setJoinCode] = useState("");
+  const [joinPw, setJoinPw] = useState("");
+  const [joinRole, setJoinRole] = useState<UserRole>(
+    user?.role ?? "siteEngineer",
+  );
   const [joinError, setJoinError] = useState("");
+  const [joiningProject, setJoiningProject] = useState(false);
 
   const isChief = user?.role === "chiefEngineer";
 
-  const myProjects = projects.filter(
-    (p) => user && p.members.some((m) => m.email === user.email),
-  );
-  const userProjects = isChief && showAll ? projects : myProjects;
+  // Load user's projects from canister on mount
+  useEffect(() => {
+    if (!user) return;
+    setLoadingProjects(true);
 
-  function getUserRoleInProject(project: Project): UserRole {
-    const member = project.members.find((m) => m.email === user?.email);
-    return member?.role ?? user?.role ?? "siteEngineer";
-  }
+    const fetchProjects = async () => {
+      try {
+        let raw: Awaited<ReturnType<typeof canisterGetUserProjects>>;
+        if (isChief && showAll) {
+          raw = await canisterGetAllProjects();
+        } else {
+          raw = await canisterGetUserProjects(user.email);
+        }
+        const mapped = raw.map((p) =>
+          mapCanisterProject(p, user.email, user.role),
+        );
+        setProjects(mapped);
+      } catch (err) {
+        console.error("Failed to load projects:", err);
+        toast.error("Failed to load projects");
+      } finally {
+        setLoadingProjects(false);
+      }
+    };
 
-  function isMemberOf(project: Project): boolean {
-    return !!user && project.members.some((m) => m.email === user.email);
+    fetchProjects();
+  }, [user, isChief, showAll, setProjects]);
+
+  function getUserRoleInProject(_project: Project): UserRole {
+    return user?.role ?? "siteEngineer";
   }
 
   function handleProjectClick(project: Project) {
     const roleInProject = getUserRoleInProject(project);
     const isCached = cachedCodes.has(project.id);
-    if (isMemberOf(project) && isCached) {
+    if (isCached) {
       setActiveProject(project);
       navigate({ to: roleToDashboardPath(roleInProject) });
     } else {
       setSelectedProject(project);
-      setTeamCode("");
-      setCodeError("");
+      setTeamPassword("");
+      setPasswordError("");
     }
   }
 
-  function handleEnterProject() {
+  async function handleEnterProject() {
     if (!selectedProject) return;
-    const ok = enterProject(selectedProject.id, teamCode);
-    if (ok) {
-      const role = getUserRoleInProject(selectedProject);
-      navigate({ to: roleToDashboardPath(role) });
-    } else {
-      setCodeError("Incorrect Team Code. Please try again.");
+    setEnteringProject(true);
+    try {
+      const ok = await enterProject(selectedProject.id, teamPassword);
+      if (ok) {
+        const role = getUserRoleInProject(selectedProject);
+        navigate({ to: roleToDashboardPath(role) });
+      } else {
+        setPasswordError("Incorrect Team Password. Please try again.");
+      }
+    } finally {
+      setEnteringProject(false);
     }
   }
 
-  function handleCreateProject() {
+  async function handleCreateProject() {
     if (!newName.trim()) {
       toast.error("Project name is required");
       return;
@@ -145,37 +203,83 @@ export default function ProjectsDashboard() {
       return;
     }
     if (!user) return;
-    addProject({
-      name: newName.trim(),
-      description: newDesc.trim(),
-      teamCode: newTeamCode.trim().toUpperCase(),
-      teamPassword: newTeamPw.trim(),
-      status: newStatus,
-      budget: 0,
-      location: newLocation.trim(),
-      members: [{ email: user.email, name: user.name, role: user.role }],
-    });
-    toast.success(`Project "${newName}" created!`);
-    setCreateOpen(false);
-    setNewName("");
-    setNewDesc("");
-    setNewTeamCode("");
-    setNewTeamPw("");
-    setNewLocation("");
+    setCreatingProject(true);
+    try {
+      const result = await canisterCreateProject(
+        user.email,
+        newName.trim(),
+        newLocation.trim() || newDesc.trim(),
+        new Date().toISOString().split("T")[0],
+        newTeamCode.trim().toUpperCase(),
+        newTeamPw.trim(),
+        0,
+      );
+      if (!result.ok) {
+        toast.error(result.message || "Failed to create project");
+        return;
+      }
+      const newProject: Project = {
+        id: String(Number(result.projectId)),
+        name: newName.trim(),
+        description: newDesc.trim(),
+        teamCode: newTeamCode.trim().toUpperCase(),
+        teamPassword: newTeamPw.trim(),
+        status: newStatus,
+        budget: 0,
+        location: newLocation.trim(),
+        members: [{ email: user.email, name: user.name, role: user.role }],
+      };
+      addProject(newProject);
+      toast.success(`Project "${newName}" created!`);
+      setCreateOpen(false);
+      setNewName("");
+      setNewDesc("");
+      setNewTeamCode("");
+      setNewTeamPw("");
+      setNewLocation("");
+    } catch (err) {
+      toast.error(String(err));
+    } finally {
+      setCreatingProject(false);
+    }
   }
 
-  function handleJoinProject() {
+  async function handleJoinProject() {
     if (!joinCode.trim()) {
       setJoinError("Please enter a Team Code");
       return;
     }
-    const ok = joinProject(joinCode.trim());
-    if (ok) {
-      toast.success("Joined project!");
-      setJoinOpen(false);
-      setJoinCode("");
-    } else {
-      setJoinError("Invalid Team Code. Check with your Chief Engineer.");
+    if (!joinPw.trim()) {
+      setJoinError("Please enter the Team Password");
+      return;
+    }
+    setJoiningProject(true);
+    try {
+      const result = await joinProject(
+        joinCode.trim(),
+        joinPw.trim(),
+        joinRole,
+      );
+      if (result.ok) {
+        // Reload projects
+        if (user) {
+          const raw = await canisterGetUserProjects(user.email);
+          const mapped = raw.map((p) =>
+            mapCanisterProject(p, user.email, user.role),
+          );
+          setProjects(mapped);
+        }
+        toast.success("Joined project!");
+        setJoinOpen(false);
+        setJoinCode("");
+        setJoinPw("");
+      } else {
+        setJoinError(result.message || "Invalid Team Code or Password.");
+      }
+    } catch (err) {
+      setJoinError(String(err));
+    } finally {
+      setJoiningProject(false);
     }
   }
 
@@ -219,6 +323,7 @@ export default function ProjectsDashboard() {
               size="sm"
               className="text-slate-400 hover:text-red-400"
               onClick={handleLogout}
+              data-ocid="projects.logout.button"
             >
               <LogOut className="w-4 h-4 mr-1" /> Logout
             </Button>
@@ -254,6 +359,7 @@ export default function ProjectsDashboard() {
                   size="sm"
                   onClick={() => setShowAll(!showAll)}
                   className="border-slate-300"
+                  data-ocid="projects.toggle"
                 >
                   {showAll ? "My Projects" : "All Projects"}
                 </Button>
@@ -283,27 +389,36 @@ export default function ProjectsDashboard() {
         {!isChief && (
           <div className="mb-4 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 text-sm text-blue-700">
             <strong>Note:</strong> Only Chief Engineers can create new projects.
-            Use "Join Project" with a Team Code from your Chief Engineer.
+            Use "Join Project" with a Team Code and Password from your Chief
+            Engineer.
           </div>
         )}
 
         {/* Projects grid */}
-        {userProjects.length === 0 ? (
+        {loadingProjects ? (
+          <div
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+            data-ocid="projects.loading_state"
+          >
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-40 rounded-2xl" />
+            ))}
+          </div>
+        ) : projects.length === 0 ? (
           <div className="text-center py-16" data-ocid="projects.empty_state">
             <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
             <h3 className="font-semibold text-slate-500">No projects yet</h3>
             <p className="text-sm text-slate-400 mt-1">
               {isChief
                 ? 'Create your first project using the "New Project" button.'
-                : "Ask your Chief Engineer for a Team Code to join a project."}
+                : "Ask your Chief Engineer for a Team Code and Password to join a project."}
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {userProjects.map((project, idx) => {
+            {projects.map((project, idx) => {
               const memberRole = getUserRoleInProject(project);
               const isCached = cachedCodes.has(project.id);
-              const isMember = isMemberOf(project);
               return (
                 <button
                   key={project.id}
@@ -317,11 +432,11 @@ export default function ProjectsDashboard() {
                       <Building2 className="w-5 h-5 text-[#f97316]" />
                     </div>
                     <div className="flex items-center gap-1.5">
-                      {isMember && !isCached ? (
+                      {!isCached ? (
                         <Lock className="w-4 h-4 text-slate-400" />
-                      ) : isMember && isCached ? (
+                      ) : (
                         <Unlock className="w-4 h-4 text-green-500" />
-                      ) : null}
+                      )}
                       <Badge className={`text-xs ${statusBg[project.status]}`}>
                         {project.status}
                       </Badge>
@@ -331,23 +446,17 @@ export default function ProjectsDashboard() {
                     {project.name}
                   </h3>
                   <p className="text-xs text-slate-400 mb-3 line-clamp-2">
-                    {project.description}
+                    {project.description || project.location}
                   </p>
-                  {isMember ? (
-                    <Badge
-                      className="text-xs"
-                      style={{
-                        backgroundColor: `${roleColor[memberRole]}15`,
-                        color: roleColor[memberRole],
-                      }}
-                    >
-                      {roleToLabel(memberRole)}
-                    </Badge>
-                  ) : (
-                    <Badge className="text-xs bg-slate-100 text-slate-500">
-                      Monitoring Only
-                    </Badge>
-                  )}
+                  <Badge
+                    className="text-xs"
+                    style={{
+                      backgroundColor: `${roleColor[memberRole]}15`,
+                      color: roleColor[memberRole],
+                    }}
+                  >
+                    {roleToLabel(memberRole)}
+                  </Badge>
                   {project.location && (
                     <p className="text-xs text-slate-400 mt-2">
                       📍 {project.location}
@@ -360,62 +469,64 @@ export default function ProjectsDashboard() {
         )}
       </div>
 
-      {/* Enter Project Modal */}
+      {/* Enter Project Modal (Team Password) */}
       <Dialog
         open={!!selectedProject}
         onOpenChange={(open) => !open && setSelectedProject(null)}
       >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Enter Team Code</DialogTitle>
+            <DialogTitle>Enter Team Password</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-slate-500">
-              Enter the Team Code for <strong>{selectedProject?.name}</strong>{" "}
-              to access this project.
+              Enter the Team Password for{" "}
+              <strong>{selectedProject?.name}</strong> to access this project.
             </p>
             <div>
-              <Label>Team Code</Label>
+              <Label>Team Password</Label>
               <div className="relative mt-1">
                 <Input
-                  type={showCode ? "text" : "password"}
-                  value={teamCode}
+                  type={showPassword ? "text" : "password"}
+                  value={teamPassword}
                   onChange={(e) => {
-                    setTeamCode(e.target.value);
-                    setCodeError("");
+                    setTeamPassword(e.target.value);
+                    setPasswordError("");
                   }}
-                  placeholder="e.g. ALPHA42"
+                  placeholder="Enter team password"
                   onKeyDown={(e) => e.key === "Enter" && handleEnterProject()}
-                  className="pr-10 uppercase"
+                  className="pr-10"
                   data-ocid="projects.passcode.input"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowCode(!showCode)}
+                  onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
                 >
-                  {showCode ? (
+                  {showPassword ? (
                     <EyeOff className="w-4 h-4" />
                   ) : (
                     <Eye className="w-4 h-4" />
                   )}
                 </button>
               </div>
-              {codeError && (
+              {passwordError && (
                 <p
                   className="text-xs text-red-500 mt-1"
                   data-ocid="projects.passcode.error_state"
                 >
-                  {codeError}
+                  {passwordError}
                 </p>
               )}
             </div>
             <Button
               className="w-full bg-[#f97316] hover:bg-[#ea6c10] text-white"
               onClick={handleEnterProject}
+              disabled={enteringProject}
               data-ocid="projects.passcode.submit_button"
             >
-              <Key className="w-4 h-4 mr-2" /> Enter Project
+              <Key className="w-4 h-4 mr-2" />
+              {enteringProject ? "Verifying..." : "Enter Project"}
             </Button>
           </div>
         </DialogContent>
@@ -482,7 +593,7 @@ export default function ProjectsDashboard() {
               <div>
                 <Label>Team Code (Join Code) *</Label>
                 <p className="text-xs text-slate-400 mb-1">
-                  Short alphanumeric code team members use to join this project
+                  Short alphanumeric code team members use to find this project
                 </p>
                 <Input
                   value={newTeamCode}
@@ -523,9 +634,11 @@ export default function ProjectsDashboard() {
             <Button
               className="w-full bg-[#f97316] hover:bg-[#ea6c10] text-white"
               onClick={handleCreateProject}
+              disabled={creatingProject}
               data-ocid="projects.create.submit_button"
             >
-              <Plus className="w-4 h-4 mr-2" /> Create Project
+              <Plus className="w-4 h-4 mr-2" />
+              {creatingProject ? "Creating..." : "Create Project"}
             </Button>
           </div>
         </DialogContent>
@@ -539,8 +652,8 @@ export default function ProjectsDashboard() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-slate-500">
-              Enter the Team Code provided by your Chief Engineer to join an
-              existing project.
+              Enter the Team Code and Team Password provided by your Chief
+              Engineer to join an existing project.
             </p>
             <div>
               <Label>Team Code</Label>
@@ -554,21 +667,59 @@ export default function ProjectsDashboard() {
                 className="mt-1 uppercase font-mono"
                 data-ocid="projects.join.input"
               />
-              {joinError && (
-                <p
-                  className="text-xs text-red-500 mt-1"
-                  data-ocid="projects.join.error_state"
-                >
-                  {joinError}
-                </p>
-              )}
             </div>
+            <div>
+              <Label>Team Password</Label>
+              <Input
+                type="password"
+                value={joinPw}
+                onChange={(e) => {
+                  setJoinPw(e.target.value);
+                  setJoinError("");
+                }}
+                placeholder="Enter team password"
+                className="mt-1"
+                data-ocid="projects.join.input"
+              />
+            </div>
+            <div>
+              <Label>Your Role in This Project</Label>
+              <Select
+                value={joinRole}
+                onValueChange={(v) => setJoinRole(v as UserRole)}
+              >
+                <SelectTrigger
+                  className="mt-1"
+                  data-ocid="projects.join.select"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="chiefEngineer">Chief Engineer</SelectItem>
+                  <SelectItem value="siteEngineer">Site Engineer</SelectItem>
+                  <SelectItem value="materialsEngineer">
+                    Materials Engineer
+                  </SelectItem>
+                  <SelectItem value="siteOwner">Site Owner</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {joinError && (
+              <p
+                className="text-xs text-red-500"
+                data-ocid="projects.join.error_state"
+              >
+                {joinError}
+              </p>
+            )}
             <Button
               className="w-full bg-[#f97316] hover:bg-[#ea6c10] text-white"
               onClick={handleJoinProject}
+              disabled={joiningProject}
               data-ocid="projects.join.submit_button"
             >
-              <UserPlus className="w-4 h-4 mr-2" /> Join Project
+              <UserPlus className="w-4 h-4 mr-2" />
+              {joiningProject ? "Joining..." : "Join Project"}
             </Button>
           </div>
         </DialogContent>

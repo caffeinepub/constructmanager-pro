@@ -44,8 +44,13 @@ interface GroupChatProps {
 
 export default function GroupChat({ open, onClose }: GroupChatProps) {
   const { user, activeProject } = useAuth();
-  const { groupMessages, dmMessages, addGroupMessage, addDMMessage } =
-    useChat();
+  const {
+    groupMessages,
+    dmMessages,
+    addGroupMessage,
+    addDMMessage,
+    loadGroupMessages,
+  } = useChat();
   const [tab, setTab] = useState<"group" | "dm">("group");
   const [dmTarget, setDMTarget] = useState<string | null>(null);
   const [text, setText] = useState("");
@@ -64,6 +69,13 @@ export default function GroupChat({ open, onClose }: GroupChatProps) {
 
   const dmMsgs = dmTarget ? (dmMessages[getDMKey(dmTarget)] ?? []) : [];
   const messages = tab === "group" ? groupMsgs : dmMsgs;
+
+  // Load group messages when panel opens or project changes
+  useEffect(() => {
+    if (open && projectId) {
+      loadGroupMessages(projectId);
+    }
+  }, [open, projectId, loadGroupMessages]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on messages
   useEffect(() => {

@@ -18,6 +18,7 @@ import {
 import { useState } from "react";
 import { useProjectData } from "../../ProjectDataContext";
 import DashboardLayout from "../../components/DashboardLayout";
+import InlineChatPanel from "../../components/InlineChatPanel";
 
 function formatCurrency(n: number) {
   return new Intl.NumberFormat("en-IN", {
@@ -484,6 +485,18 @@ export default function SiteOwnerDashboard() {
               </CardContent>
             </Card>
           </div>
+        </div>
+      )}
+
+      {/* CHAT */}
+      {activeTab === "chat" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-[#0f172a]">
+              Project Group Chat
+            </h2>
+          </div>
+          <InlineChatPanel />
         </div>
       )}
     </DashboardLayout>

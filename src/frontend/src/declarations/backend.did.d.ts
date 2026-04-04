@@ -10,63 +10,217 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export interface DashboardSummary {
-  'teamList' : Array<User>,
-  'projects' : Array<Project>,
-  'attendanceSummary' : bigint,
-  'financialOverview' : bigint,
+export type AppRole =
+  | { chiefEngineer: null }
+  | { siteEngineer: null }
+  | { materialsEngineer: null }
+  | { siteOwner: null };
+
+export type UserRole = { admin: null } | { user: null } | { guest: null };
+
+export interface Worker {
+  dailyWage: bigint;
+  dialCode: string;
+  id: bigint;
+  name: string;
+  phone: string;
+  projectId: bigint;
+  skill: string;
+  wEmail: string;
 }
-export interface Material {
-  'name' : string,
-  'quantity' : bigint,
-  'reorderLevel' : bigint,
-}
+
 export interface Project {
-  'status' : string,
-  'name' : string,
-  'site' : string,
-  'budget' : bigint,
+  budget: bigint;
+  completion: bigint;
+  createdBy: string;
+  id: bigint;
+  location: string;
+  name: string;
+  pwHash: string;
+  startDate: string;
+  teamCode: string;
 }
-export interface Task {
-  'status' : string,
-  'title' : string,
-  'assignedTo' : Principal,
-  'description' : string,
+
+export interface ProjectMember {
+  email: string;
+  projectId: bigint;
+  role: AppRole;
 }
-export interface User {
-  'name' : string,
-  'role' : UserRole,
-  'email' : string,
-  'hashedPassword' : string,
+
+export interface ProgressEntry {
+  byEmail: string;
+  date: string;
+  id: bigint;
+  notes: string;
+  pct: bigint;
+  photos: Array<string>;
+  projectId: bigint;
 }
-export type UserRole = { 'siteOwner' : null } |
-  { 'materialsEngineer' : null } |
-  { 'chiefEngineer' : null } |
-  { 'siteEngineer' : null };
-export type UserRole__1 = { 'admin' : null } |
-  { 'user' : null } |
-  { 'guest' : null };
+
+export interface PayrollRecord {
+  approvedBy: string;
+  id: bigint;
+  period: string;
+  projectId: bigint;
+  status: string;
+  submittedBy: string;
+  totalAmount: bigint;
+}
+
+export interface Notification {
+  content: string;
+  id: bigint;
+  isRead: boolean;
+  nType: string;
+  timestamp: string;
+  userEmail: string;
+}
+
+export interface MaterialTx {
+  byEmail: string;
+  date: string;
+  id: bigint;
+  materialId: bigint;
+  notes: string;
+  projectId: bigint;
+  qty: bigint;
+  txType: string;
+}
+
+export interface Material {
+  id: bigint;
+  name: string;
+  priceUsd: bigint;
+  projectId: bigint;
+  reorderLevel: bigint;
+  stock: bigint;
+  supplier: string;
+  unit: string;
+}
+
+export interface ChatMessage {
+  id: bigint;
+  isDM: boolean;
+  projectId: bigint;
+  receiverEmail: string;
+  senderEmail: string;
+  senderName: string;
+  senderRole: string;
+  text: string;
+  timestamp: string;
+}
+
+export interface AuditEntry {
+  action: string;
+  area: string;
+  details: string;
+  id: bigint;
+  timestamp: string;
+  userEmail: string;
+}
+
+export interface AttendanceRecord {
+  date: string;
+  projectId: bigint;
+  status: string;
+  workerId: bigint;
+}
+
 export interface _SERVICE {
-  '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
-  'addMaterial' : ActorMethod<[string, bigint, bigint], bigint>,
-  'addProject' : ActorMethod<[string, string, string, bigint], bigint>,
-  'approveMaterialRequest' : ActorMethod<[string, bigint], undefined>,
-  'assignCallerUserRole' : ActorMethod<[Principal, UserRole__1], undefined>,
-  'assignTask' : ActorMethod<[string, string, Principal, string], bigint>,
-  'createReorderAlert' : ActorMethod<[bigint, bigint], undefined>,
-  'getAllUsers' : ActorMethod<[], Array<[Principal, User]>>,
-  'getCallerUserRole' : ActorMethod<[], UserRole__1>,
-  'getCurrentUserProfile' : ActorMethod<[], User>,
-  'getFullDashboardSummary' : ActorMethod<[], DashboardSummary>,
-  'getInventory' : ActorMethod<[], Array<Material>>,
-  'getProjectOverview' : ActorMethod<[], Array<Project>>,
-  'getSiteEngineerTasks' : ActorMethod<[Principal], Array<Task>>,
-  'isCallerAdmin' : ActorMethod<[], boolean>,
-  'loginUser' : ActorMethod<[string, string], undefined>,
-  'registerUser' : ActorMethod<[string, string, string, UserRole], undefined>,
-  'submitDailyLog' : ActorMethod<[bigint, string], undefined>,
-  'updateStock' : ActorMethod<[bigint, bigint], undefined>,
+  _initializeAccessControlWithSecret: ActorMethod<[string], undefined>;
+  addMaterial: ActorMethod<
+    [string, bigint, string, string, bigint, bigint, bigint, string, string],
+    [{ materialId: bigint; message: string; ok: boolean }]
+  >;
+  addProgress: ActorMethod<
+    [string, bigint, bigint, string, string, Array<string>, string],
+    [{ entryId: bigint; message: string; ok: boolean }]
+  >;
+  addWorker: ActorMethod<
+    [string, bigint, string, string, bigint, string, string, string, string],
+    [{ message: string; ok: boolean; workerId: bigint }]
+  >;
+  approvePayroll: ActorMethod<
+    [string, bigint, bigint, string],
+    [{ message: string; ok: boolean }]
+  >;
+  assignCallerUserRole: ActorMethod<[Principal, UserRole], undefined>;
+  changePassword: ActorMethod<
+    [string, string, string],
+    [{ message: string; ok: boolean }]
+  >;
+  createProject: ActorMethod<
+    [string, string, string, string, string, string, bigint, string],
+    [{ message: string; ok: boolean; projectId: bigint }]
+  >;
+  getAllProjects: ActorMethod<[], Array<Project>>;
+  getAttendance: ActorMethod<[bigint], Array<AttendanceRecord>>;
+  getAuditLog: ActorMethod<[string, bigint], Array<AuditEntry>>;
+  getCallerUserRole: ActorMethod<[], UserRole>;
+  getDMChat: ActorMethod<[bigint, string, string], Array<ChatMessage>>;
+  getGroupChat: ActorMethod<[bigint], Array<ChatMessage>>;
+  getMaterialTx: ActorMethod<[bigint], Array<MaterialTx>>;
+  getMaterials: ActorMethod<[bigint], Array<Material>>;
+  getNotifications: ActorMethod<[string], Array<Notification>>;
+  getPayroll: ActorMethod<[bigint], Array<PayrollRecord>>;
+  getProgress: ActorMethod<[bigint], Array<ProgressEntry>>;
+  getProjectMembers: ActorMethod<[bigint], Array<ProjectMember>>;
+  getUserProjects: ActorMethod<[string], Array<Project>>;
+  getWorkers: ActorMethod<[bigint], Array<Worker>>;
+  isCallerAdmin: ActorMethod<[], boolean>;
+  joinProject: ActorMethod<
+    [string, string, string, AppRole],
+    [{ message: string; ok: boolean; projectId: bigint }]
+  >;
+  login: ActorMethod<
+    [string, string],
+    [{ currency: string; message: string; name: string; nationality: string; ok: boolean; phone: string; role: string }]
+  >;
+  markAllNotifsRead: ActorMethod<[string], [{ ok: boolean }]>;
+  markAttendance: ActorMethod<
+    [string, bigint, bigint, string, string],
+    [{ message: string; ok: boolean }]
+  >;
+  markNotifRead: ActorMethod<[string, bigint], [{ ok: boolean }]>;
+  postChat: ActorMethod<
+    [bigint, string, string, string, string, string, boolean, string],
+    [{ messageId: bigint; ok: boolean }]
+  >;
+  recordTx: ActorMethod<
+    [string, bigint, bigint, string, bigint, string, string, string],
+    [{ message: string; ok: boolean }]
+  >;
+  register: ActorMethod<
+    [string, string, string, string, string, string, AppRole],
+    [{ message: string; ok: boolean }]
+  >;
+  seedDemo: ActorMethod<[], [{ ok: boolean }]>;
+  submitPayroll: ActorMethod<
+    [string, bigint, string, bigint, string],
+    [{ message: string; ok: boolean; payrollId: bigint }]
+  >;
+  updateMaterial: ActorMethod<
+    [string, bigint, bigint, string, string, bigint, bigint, bigint, string],
+    [{ message: string; ok: boolean }]
+  >;
+  updateProfile: ActorMethod<
+    [string, string, string, string, string, string],
+    [{ message: string; ok: boolean }]
+  >;
+  updateTeamCode: ActorMethod<
+    [string, bigint, string, string],
+    [{ message: string; ok: boolean }]
+  >;
+  updateWorker: ActorMethod<
+    [string, bigint, bigint, string, string, bigint, string, string, string],
+    [{ message: string; ok: boolean }]
+  >;
+  verifyProjectPassword: ActorMethod<
+    [string, bigint, string],
+    [{ message: string; ok: boolean }]
+  >;
 }
+
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];
 export declare const idlFactory: IDL.InterfaceFactory;

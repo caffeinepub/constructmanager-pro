@@ -29,8 +29,10 @@ import {
   AlertTriangle,
   Camera,
   CheckCircle,
+  Download,
   Eye,
   EyeOff,
+  FileSpreadsheet,
   Package,
   Plus,
   RefreshCw,
@@ -49,6 +51,17 @@ import {
   useProjectData,
 } from "../../ProjectDataContext";
 import DashboardLayout from "../../components/DashboardLayout";
+import InlineChatPanel from "../../components/InlineChatPanel";
+import {
+  exportAttendanceCSV,
+  exportMaterialsCSV,
+  exportProgressCSV,
+} from "../../utils/csvExport";
+import {
+  exportAttendancePDF,
+  exportMaterialsPDF,
+  exportProgressPDF,
+} from "../../utils/pdfExport";
 
 // ---- Helpers ----
 function getMaterialStatus(m: Material): "OK" | "Low" | "Critical" {
@@ -760,6 +773,38 @@ export default function ChiefEngineerDashboard() {
                 {t.charAt(0).toUpperCase() + t.slice(1)}
               </Button>
             ))}
+            <div className="ml-auto flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-[#f97316] text-[#f97316] hover:bg-orange-50"
+                onClick={() =>
+                  exportAttendancePDF(
+                    data.workers,
+                    data.attendance,
+                    activeProject?.name ?? "Project",
+                  )
+                }
+                data-ocid="ce.labour.upload_button"
+              >
+                <Download className="w-3.5 h-3.5 mr-1" /> Export PDF
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-[#f97316] text-[#f97316] hover:bg-orange-50"
+                onClick={() =>
+                  exportAttendanceCSV(
+                    data.workers,
+                    data.attendance,
+                    activeProject?.name ?? "Project",
+                  )
+                }
+                data-ocid="ce.labour.secondary_button"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Export CSV
+              </Button>
+            </div>
           </div>
 
           {workerTab === "list" && (
@@ -1038,6 +1083,36 @@ export default function ChiefEngineerDashboard() {
                   : t.charAt(0).toUpperCase() + t.slice(1)}
               </Button>
             ))}
+            <div className="ml-auto flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-[#10b981] text-[#10b981] hover:bg-emerald-50"
+                onClick={() =>
+                  exportMaterialsPDF(
+                    data.materials,
+                    activeProject?.name ?? "Project",
+                  )
+                }
+                data-ocid="ce.materials.upload_button"
+              >
+                <Download className="w-3.5 h-3.5 mr-1" /> Export PDF
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-[#10b981] text-[#10b981] hover:bg-emerald-50"
+                onClick={() =>
+                  exportMaterialsCSV(
+                    data.materials,
+                    activeProject?.name ?? "Project",
+                  )
+                }
+                data-ocid="ce.materials.secondary_button"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Export CSV
+              </Button>
+            </div>
           </div>
 
           {matTab === "inventory" && (
@@ -1339,6 +1414,38 @@ export default function ChiefEngineerDashboard() {
       {/* PROGRESS */}
       {activeTab === "progress" && (
         <div className="space-y-6">
+          <div className="flex justify-end gap-2 mb-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-[#f97316] text-[#f97316] hover:bg-orange-50"
+              onClick={() =>
+                exportProgressPDF(
+                  data.progressHistory,
+                  activeProject?.name ?? "Project",
+                  data.currentProgress,
+                )
+              }
+              data-ocid="ce.progress.upload_button"
+            >
+              <Download className="w-3.5 h-3.5 mr-1" /> Export PDF
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-[#f97316] text-[#f97316] hover:bg-orange-50"
+              onClick={() =>
+                exportProgressCSV(
+                  data.progressHistory,
+                  activeProject?.name ?? "Project",
+                  data.currentProgress,
+                )
+              }
+              data-ocid="ce.progress.secondary_button"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 mr-1" /> Export CSV
+            </Button>
+          </div>
           <div className="flex flex-col sm:flex-row gap-6">
             <div className="flex flex-col items-center justify-center bg-white rounded-2xl border p-8 min-w-[180px]">
               <div className="relative w-32 h-32">
@@ -1904,6 +2011,18 @@ export default function ChiefEngineerDashboard() {
               </TableBody>
             </Table>
           </Card>
+        </div>
+      )}
+
+      {/* CHAT */}
+      {activeTab === "chat" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-[#0f172a]">
+              Project Group Chat
+            </h2>
+          </div>
+          <InlineChatPanel />
         </div>
       )}
 

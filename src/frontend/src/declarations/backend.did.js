@@ -8,165 +8,545 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
-export const UserRole__1 = IDL.Variant({
-  'admin' : IDL.Null,
-  'user' : IDL.Null,
-  'guest' : IDL.Null,
+export const AppRole = IDL.Variant({
+  chiefEngineer: IDL.Null,
+  siteEngineer: IDL.Null,
+  materialsEngineer: IDL.Null,
+  siteOwner: IDL.Null,
 });
+
 export const UserRole = IDL.Variant({
-  'siteOwner' : IDL.Null,
-  'materialsEngineer' : IDL.Null,
-  'chiefEngineer' : IDL.Null,
-  'siteEngineer' : IDL.Null,
+  admin: IDL.Null,
+  user: IDL.Null,
+  guest: IDL.Null,
 });
-export const User = IDL.Record({
-  'name' : IDL.Text,
-  'role' : UserRole,
-  'email' : IDL.Text,
-  'hashedPassword' : IDL.Text,
+
+export const Worker = IDL.Record({
+  dailyWage: IDL.Nat,
+  dialCode: IDL.Text,
+  id: IDL.Nat,
+  name: IDL.Text,
+  phone: IDL.Text,
+  projectId: IDL.Nat,
+  skill: IDL.Text,
+  wEmail: IDL.Text,
 });
+
 export const Project = IDL.Record({
-  'status' : IDL.Text,
-  'name' : IDL.Text,
-  'site' : IDL.Text,
-  'budget' : IDL.Nat,
+  budget: IDL.Nat,
+  completion: IDL.Nat,
+  createdBy: IDL.Text,
+  id: IDL.Nat,
+  location: IDL.Text,
+  name: IDL.Text,
+  pwHash: IDL.Text,
+  startDate: IDL.Text,
+  teamCode: IDL.Text,
 });
-export const DashboardSummary = IDL.Record({
-  'teamList' : IDL.Vec(User),
-  'projects' : IDL.Vec(Project),
-  'attendanceSummary' : IDL.Nat,
-  'financialOverview' : IDL.Nat,
+
+export const ProjectMember = IDL.Record({
+  email: IDL.Text,
+  projectId: IDL.Nat,
+  role: AppRole,
 });
+
+export const ProgressEntry = IDL.Record({
+  byEmail: IDL.Text,
+  date: IDL.Text,
+  id: IDL.Nat,
+  notes: IDL.Text,
+  pct: IDL.Nat,
+  photos: IDL.Vec(IDL.Text),
+  projectId: IDL.Nat,
+});
+
+export const PayrollRecord = IDL.Record({
+  approvedBy: IDL.Text,
+  id: IDL.Nat,
+  period: IDL.Text,
+  projectId: IDL.Nat,
+  status: IDL.Text,
+  submittedBy: IDL.Text,
+  totalAmount: IDL.Nat,
+});
+
+export const Notification = IDL.Record({
+  content: IDL.Text,
+  id: IDL.Nat,
+  isRead: IDL.Bool,
+  nType: IDL.Text,
+  timestamp: IDL.Text,
+  userEmail: IDL.Text,
+});
+
+export const MaterialTx = IDL.Record({
+  byEmail: IDL.Text,
+  date: IDL.Text,
+  id: IDL.Nat,
+  materialId: IDL.Nat,
+  notes: IDL.Text,
+  projectId: IDL.Nat,
+  qty: IDL.Nat,
+  txType: IDL.Text,
+});
+
 export const Material = IDL.Record({
-  'name' : IDL.Text,
-  'quantity' : IDL.Nat,
-  'reorderLevel' : IDL.Nat,
+  id: IDL.Nat,
+  name: IDL.Text,
+  priceUsd: IDL.Nat,
+  projectId: IDL.Nat,
+  reorderLevel: IDL.Nat,
+  stock: IDL.Nat,
+  supplier: IDL.Text,
+  unit: IDL.Text,
 });
-export const Task = IDL.Record({
-  'status' : IDL.Text,
-  'title' : IDL.Text,
-  'assignedTo' : IDL.Principal,
-  'description' : IDL.Text,
+
+export const ChatMessage = IDL.Record({
+  id: IDL.Nat,
+  isDM: IDL.Bool,
+  projectId: IDL.Nat,
+  receiverEmail: IDL.Text,
+  senderEmail: IDL.Text,
+  senderName: IDL.Text,
+  senderRole: IDL.Text,
+  text: IDL.Text,
+  timestamp: IDL.Text,
+});
+
+export const AuditEntry = IDL.Record({
+  action: IDL.Text,
+  area: IDL.Text,
+  details: IDL.Text,
+  id: IDL.Nat,
+  timestamp: IDL.Text,
+  userEmail: IDL.Text,
+});
+
+export const AttendanceRecord = IDL.Record({
+  date: IDL.Text,
+  projectId: IDL.Nat,
+  status: IDL.Text,
+  workerId: IDL.Nat,
+});
+
+const AddMaterialResult = IDL.Record({
+  materialId: IDL.Nat,
+  message: IDL.Text,
+  ok: IDL.Bool,
+});
+
+const AddProgressResult = IDL.Record({
+  entryId: IDL.Nat,
+  message: IDL.Text,
+  ok: IDL.Bool,
+});
+
+const AddWorkerResult = IDL.Record({
+  message: IDL.Text,
+  ok: IDL.Bool,
+  workerId: IDL.Nat,
+});
+
+const OkMessage = IDL.Record({ message: IDL.Text, ok: IDL.Bool });
+const OkBool = IDL.Record({ ok: IDL.Bool });
+
+const CreateProjectResult = IDL.Record({
+  message: IDL.Text,
+  ok: IDL.Bool,
+  projectId: IDL.Nat,
+});
+
+const JoinProjectResult = IDL.Record({
+  message: IDL.Text,
+  ok: IDL.Bool,
+  projectId: IDL.Nat,
+});
+
+const LoginResult = IDL.Record({
+  currency: IDL.Text,
+  message: IDL.Text,
+  name: IDL.Text,
+  nationality: IDL.Text,
+  ok: IDL.Bool,
+  phone: IDL.Text,
+  role: IDL.Text,
+});
+
+const PostChatResult = IDL.Record({ messageId: IDL.Nat, ok: IDL.Bool });
+
+const SubmitPayrollResult = IDL.Record({
+  message: IDL.Text,
+  ok: IDL.Bool,
+  payrollId: IDL.Nat,
 });
 
 export const idlService = IDL.Service({
-  '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-  'addMaterial' : IDL.Func([IDL.Text, IDL.Nat, IDL.Nat], [IDL.Nat], []),
-  'addProject' : IDL.Func(
-      [IDL.Text, IDL.Text, IDL.Text, IDL.Nat],
-      [IDL.Nat],
-      [],
-    ),
-  'approveMaterialRequest' : IDL.Func([IDL.Text, IDL.Nat], [], []),
-  'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole__1], [], []),
-  'assignTask' : IDL.Func(
-      [IDL.Text, IDL.Text, IDL.Principal, IDL.Text],
-      [IDL.Nat],
-      [],
-    ),
-  'createReorderAlert' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
-  'getAllUsers' : IDL.Func(
-      [],
-      [IDL.Vec(IDL.Tuple(IDL.Principal, User))],
-      ['query'],
-    ),
-  'getCallerUserRole' : IDL.Func([], [UserRole__1], ['query']),
-  'getCurrentUserProfile' : IDL.Func([], [User], []),
-  'getFullDashboardSummary' : IDL.Func([], [DashboardSummary], ['query']),
-  'getInventory' : IDL.Func([], [IDL.Vec(Material)], ['query']),
-  'getProjectOverview' : IDL.Func([], [IDL.Vec(Project)], ['query']),
-  'getSiteEngineerTasks' : IDL.Func(
-      [IDL.Principal],
-      [IDL.Vec(Task)],
-      ['query'],
-    ),
-  'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-  'loginUser' : IDL.Func([IDL.Text, IDL.Text], [], []),
-  'registerUser' : IDL.Func([IDL.Text, IDL.Text, IDL.Text, UserRole], [], []),
-  'submitDailyLog' : IDL.Func([IDL.Nat, IDL.Text], [], []),
-  'updateStock' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
+  _initializeAccessControlWithSecret: IDL.Func([IDL.Text], [], []),
+  addMaterial: IDL.Func(
+    [IDL.Text, IDL.Nat, IDL.Text, IDL.Text, IDL.Nat, IDL.Nat, IDL.Nat, IDL.Text, IDL.Text],
+    [AddMaterialResult],
+    [],
+  ),
+  addProgress: IDL.Func(
+    [IDL.Text, IDL.Nat, IDL.Nat, IDL.Text, IDL.Text, IDL.Vec(IDL.Text), IDL.Text],
+    [AddProgressResult],
+    [],
+  ),
+  addWorker: IDL.Func(
+    [IDL.Text, IDL.Nat, IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Text],
+    [AddWorkerResult],
+    [],
+  ),
+  approvePayroll: IDL.Func([IDL.Text, IDL.Nat, IDL.Nat, IDL.Text], [OkMessage], []),
+  assignCallerUserRole: IDL.Func([IDL.Principal, UserRole], [], []),
+  changePassword: IDL.Func([IDL.Text, IDL.Text, IDL.Text], [OkMessage], []),
+  createProject: IDL.Func(
+    [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Nat, IDL.Text],
+    [CreateProjectResult],
+    [],
+  ),
+  getAllProjects: IDL.Func([], [IDL.Vec(Project)], ['query']),
+  getAttendance: IDL.Func([IDL.Nat], [IDL.Vec(AttendanceRecord)], ['query']),
+  getAuditLog: IDL.Func([IDL.Text, IDL.Nat], [IDL.Vec(AuditEntry)], ['query']),
+  getCallerUserRole: IDL.Func([], [UserRole], ['query']),
+  getDMChat: IDL.Func([IDL.Nat, IDL.Text, IDL.Text], [IDL.Vec(ChatMessage)], ['query']),
+  getGroupChat: IDL.Func([IDL.Nat], [IDL.Vec(ChatMessage)], ['query']),
+  getMaterialTx: IDL.Func([IDL.Nat], [IDL.Vec(MaterialTx)], ['query']),
+  getMaterials: IDL.Func([IDL.Nat], [IDL.Vec(Material)], ['query']),
+  getNotifications: IDL.Func([IDL.Text], [IDL.Vec(Notification)], ['query']),
+  getPayroll: IDL.Func([IDL.Nat], [IDL.Vec(PayrollRecord)], ['query']),
+  getProgress: IDL.Func([IDL.Nat], [IDL.Vec(ProgressEntry)], ['query']),
+  getProjectMembers: IDL.Func([IDL.Nat], [IDL.Vec(ProjectMember)], ['query']),
+  getUserProjects: IDL.Func([IDL.Text], [IDL.Vec(Project)], ['query']),
+  getWorkers: IDL.Func([IDL.Nat], [IDL.Vec(Worker)], ['query']),
+  isCallerAdmin: IDL.Func([], [IDL.Bool], ['query']),
+  joinProject: IDL.Func(
+    [IDL.Text, IDL.Text, IDL.Text, AppRole],
+    [JoinProjectResult],
+    [],
+  ),
+  login: IDL.Func([IDL.Text, IDL.Text], [LoginResult], []),
+  markAllNotifsRead: IDL.Func([IDL.Text], [OkBool], []),
+  markAttendance: IDL.Func(
+    [IDL.Text, IDL.Nat, IDL.Nat, IDL.Text, IDL.Text],
+    [OkMessage],
+    [],
+  ),
+  markNotifRead: IDL.Func([IDL.Text, IDL.Nat], [OkBool], []),
+  postChat: IDL.Func(
+    [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Bool, IDL.Text],
+    [PostChatResult],
+    [],
+  ),
+  recordTx: IDL.Func(
+    [IDL.Text, IDL.Nat, IDL.Nat, IDL.Text, IDL.Nat, IDL.Text, IDL.Text, IDL.Text],
+    [OkMessage],
+    [],
+  ),
+  register: IDL.Func(
+    [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, AppRole],
+    [OkMessage],
+    [],
+  ),
+  seedDemo: IDL.Func([], [OkBool], []),
+  submitPayroll: IDL.Func(
+    [IDL.Text, IDL.Nat, IDL.Text, IDL.Nat, IDL.Text],
+    [SubmitPayrollResult],
+    [],
+  ),
+  updateMaterial: IDL.Func(
+    [IDL.Text, IDL.Nat, IDL.Nat, IDL.Text, IDL.Text, IDL.Nat, IDL.Nat, IDL.Nat, IDL.Text],
+    [OkMessage],
+    [],
+  ),
+  updateProfile: IDL.Func(
+    [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text],
+    [OkMessage],
+    [],
+  ),
+  updateTeamCode: IDL.Func(
+    [IDL.Text, IDL.Nat, IDL.Text, IDL.Text],
+    [OkMessage],
+    [],
+  ),
+  updateWorker: IDL.Func(
+    [IDL.Text, IDL.Nat, IDL.Nat, IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Text, IDL.Text],
+    [OkMessage],
+    [],
+  ),
+  verifyProjectPassword: IDL.Func(
+    [IDL.Text, IDL.Nat, IDL.Text],
+    [OkMessage],
+    [],
+  ),
 });
 
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
-  const UserRole__1 = IDL.Variant({
-    'admin' : IDL.Null,
-    'user' : IDL.Null,
-    'guest' : IDL.Null,
+  const AppRole = IDL.Variant({
+    chiefEngineer: IDL.Null,
+    siteEngineer: IDL.Null,
+    materialsEngineer: IDL.Null,
+    siteOwner: IDL.Null,
   });
+
   const UserRole = IDL.Variant({
-    'siteOwner' : IDL.Null,
-    'materialsEngineer' : IDL.Null,
-    'chiefEngineer' : IDL.Null,
-    'siteEngineer' : IDL.Null,
+    admin: IDL.Null,
+    user: IDL.Null,
+    guest: IDL.Null,
   });
-  const User = IDL.Record({
-    'name' : IDL.Text,
-    'role' : UserRole,
-    'email' : IDL.Text,
-    'hashedPassword' : IDL.Text,
+
+  const Worker = IDL.Record({
+    dailyWage: IDL.Nat,
+    dialCode: IDL.Text,
+    id: IDL.Nat,
+    name: IDL.Text,
+    phone: IDL.Text,
+    projectId: IDL.Nat,
+    skill: IDL.Text,
+    wEmail: IDL.Text,
   });
+
   const Project = IDL.Record({
-    'status' : IDL.Text,
-    'name' : IDL.Text,
-    'site' : IDL.Text,
-    'budget' : IDL.Nat,
+    budget: IDL.Nat,
+    completion: IDL.Nat,
+    createdBy: IDL.Text,
+    id: IDL.Nat,
+    location: IDL.Text,
+    name: IDL.Text,
+    pwHash: IDL.Text,
+    startDate: IDL.Text,
+    teamCode: IDL.Text,
   });
-  const DashboardSummary = IDL.Record({
-    'teamList' : IDL.Vec(User),
-    'projects' : IDL.Vec(Project),
-    'attendanceSummary' : IDL.Nat,
-    'financialOverview' : IDL.Nat,
+
+  const ProjectMember = IDL.Record({
+    email: IDL.Text,
+    projectId: IDL.Nat,
+    role: AppRole,
   });
+
+  const ProgressEntry = IDL.Record({
+    byEmail: IDL.Text,
+    date: IDL.Text,
+    id: IDL.Nat,
+    notes: IDL.Text,
+    pct: IDL.Nat,
+    photos: IDL.Vec(IDL.Text),
+    projectId: IDL.Nat,
+  });
+
+  const PayrollRecord = IDL.Record({
+    approvedBy: IDL.Text,
+    id: IDL.Nat,
+    period: IDL.Text,
+    projectId: IDL.Nat,
+    status: IDL.Text,
+    submittedBy: IDL.Text,
+    totalAmount: IDL.Nat,
+  });
+
+  const Notification = IDL.Record({
+    content: IDL.Text,
+    id: IDL.Nat,
+    isRead: IDL.Bool,
+    nType: IDL.Text,
+    timestamp: IDL.Text,
+    userEmail: IDL.Text,
+  });
+
+  const MaterialTx = IDL.Record({
+    byEmail: IDL.Text,
+    date: IDL.Text,
+    id: IDL.Nat,
+    materialId: IDL.Nat,
+    notes: IDL.Text,
+    projectId: IDL.Nat,
+    qty: IDL.Nat,
+    txType: IDL.Text,
+  });
+
   const Material = IDL.Record({
-    'name' : IDL.Text,
-    'quantity' : IDL.Nat,
-    'reorderLevel' : IDL.Nat,
+    id: IDL.Nat,
+    name: IDL.Text,
+    priceUsd: IDL.Nat,
+    projectId: IDL.Nat,
+    reorderLevel: IDL.Nat,
+    stock: IDL.Nat,
+    supplier: IDL.Text,
+    unit: IDL.Text,
   });
-  const Task = IDL.Record({
-    'status' : IDL.Text,
-    'title' : IDL.Text,
-    'assignedTo' : IDL.Principal,
-    'description' : IDL.Text,
+
+  const ChatMessage = IDL.Record({
+    id: IDL.Nat,
+    isDM: IDL.Bool,
+    projectId: IDL.Nat,
+    receiverEmail: IDL.Text,
+    senderEmail: IDL.Text,
+    senderName: IDL.Text,
+    senderRole: IDL.Text,
+    text: IDL.Text,
+    timestamp: IDL.Text,
   });
-  
+
+  const AuditEntry = IDL.Record({
+    action: IDL.Text,
+    area: IDL.Text,
+    details: IDL.Text,
+    id: IDL.Nat,
+    timestamp: IDL.Text,
+    userEmail: IDL.Text,
+  });
+
+  const AttendanceRecord = IDL.Record({
+    date: IDL.Text,
+    projectId: IDL.Nat,
+    status: IDL.Text,
+    workerId: IDL.Nat,
+  });
+
+  const AddMaterialResult = IDL.Record({
+    materialId: IDL.Nat,
+    message: IDL.Text,
+    ok: IDL.Bool,
+  });
+  const AddProgressResult = IDL.Record({
+    entryId: IDL.Nat,
+    message: IDL.Text,
+    ok: IDL.Bool,
+  });
+  const AddWorkerResult = IDL.Record({
+    message: IDL.Text,
+    ok: IDL.Bool,
+    workerId: IDL.Nat,
+  });
+  const OkMessage = IDL.Record({ message: IDL.Text, ok: IDL.Bool });
+  const OkBool = IDL.Record({ ok: IDL.Bool });
+  const CreateProjectResult = IDL.Record({
+    message: IDL.Text,
+    ok: IDL.Bool,
+    projectId: IDL.Nat,
+  });
+  const JoinProjectResult = IDL.Record({
+    message: IDL.Text,
+    ok: IDL.Bool,
+    projectId: IDL.Nat,
+  });
+  const LoginResult = IDL.Record({
+    currency: IDL.Text,
+    message: IDL.Text,
+    name: IDL.Text,
+    nationality: IDL.Text,
+    ok: IDL.Bool,
+    phone: IDL.Text,
+    role: IDL.Text,
+  });
+  const PostChatResult = IDL.Record({ messageId: IDL.Nat, ok: IDL.Bool });
+  const SubmitPayrollResult = IDL.Record({
+    message: IDL.Text,
+    ok: IDL.Bool,
+    payrollId: IDL.Nat,
+  });
+
   return IDL.Service({
-    '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-    'addMaterial' : IDL.Func([IDL.Text, IDL.Nat, IDL.Nat], [IDL.Nat], []),
-    'addProject' : IDL.Func(
-        [IDL.Text, IDL.Text, IDL.Text, IDL.Nat],
-        [IDL.Nat],
-        [],
-      ),
-    'approveMaterialRequest' : IDL.Func([IDL.Text, IDL.Nat], [], []),
-    'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole__1], [], []),
-    'assignTask' : IDL.Func(
-        [IDL.Text, IDL.Text, IDL.Principal, IDL.Text],
-        [IDL.Nat],
-        [],
-      ),
-    'createReorderAlert' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
-    'getAllUsers' : IDL.Func(
-        [],
-        [IDL.Vec(IDL.Tuple(IDL.Principal, User))],
-        ['query'],
-      ),
-    'getCallerUserRole' : IDL.Func([], [UserRole__1], ['query']),
-    'getCurrentUserProfile' : IDL.Func([], [User], []),
-    'getFullDashboardSummary' : IDL.Func([], [DashboardSummary], ['query']),
-    'getInventory' : IDL.Func([], [IDL.Vec(Material)], ['query']),
-    'getProjectOverview' : IDL.Func([], [IDL.Vec(Project)], ['query']),
-    'getSiteEngineerTasks' : IDL.Func(
-        [IDL.Principal],
-        [IDL.Vec(Task)],
-        ['query'],
-      ),
-    'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
-    'loginUser' : IDL.Func([IDL.Text, IDL.Text], [], []),
-    'registerUser' : IDL.Func([IDL.Text, IDL.Text, IDL.Text, UserRole], [], []),
-    'submitDailyLog' : IDL.Func([IDL.Nat, IDL.Text], [], []),
-    'updateStock' : IDL.Func([IDL.Nat, IDL.Nat], [], []),
+    _initializeAccessControlWithSecret: IDL.Func([IDL.Text], [], []),
+    addMaterial: IDL.Func(
+      [IDL.Text, IDL.Nat, IDL.Text, IDL.Text, IDL.Nat, IDL.Nat, IDL.Nat, IDL.Text, IDL.Text],
+      [AddMaterialResult],
+      [],
+    ),
+    addProgress: IDL.Func(
+      [IDL.Text, IDL.Nat, IDL.Nat, IDL.Text, IDL.Text, IDL.Vec(IDL.Text), IDL.Text],
+      [AddProgressResult],
+      [],
+    ),
+    addWorker: IDL.Func(
+      [IDL.Text, IDL.Nat, IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Text],
+      [AddWorkerResult],
+      [],
+    ),
+    approvePayroll: IDL.Func([IDL.Text, IDL.Nat, IDL.Nat, IDL.Text], [OkMessage], []),
+    assignCallerUserRole: IDL.Func([IDL.Principal, UserRole], [], []),
+    changePassword: IDL.Func([IDL.Text, IDL.Text, IDL.Text], [OkMessage], []),
+    createProject: IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Nat, IDL.Text],
+      [CreateProjectResult],
+      [],
+    ),
+    getAllProjects: IDL.Func([], [IDL.Vec(Project)], ['query']),
+    getAttendance: IDL.Func([IDL.Nat], [IDL.Vec(AttendanceRecord)], ['query']),
+    getAuditLog: IDL.Func([IDL.Text, IDL.Nat], [IDL.Vec(AuditEntry)], ['query']),
+    getCallerUserRole: IDL.Func([], [UserRole], ['query']),
+    getDMChat: IDL.Func([IDL.Nat, IDL.Text, IDL.Text], [IDL.Vec(ChatMessage)], ['query']),
+    getGroupChat: IDL.Func([IDL.Nat], [IDL.Vec(ChatMessage)], ['query']),
+    getMaterialTx: IDL.Func([IDL.Nat], [IDL.Vec(MaterialTx)], ['query']),
+    getMaterials: IDL.Func([IDL.Nat], [IDL.Vec(Material)], ['query']),
+    getNotifications: IDL.Func([IDL.Text], [IDL.Vec(Notification)], ['query']),
+    getPayroll: IDL.Func([IDL.Nat], [IDL.Vec(PayrollRecord)], ['query']),
+    getProgress: IDL.Func([IDL.Nat], [IDL.Vec(ProgressEntry)], ['query']),
+    getProjectMembers: IDL.Func([IDL.Nat], [IDL.Vec(ProjectMember)], ['query']),
+    getUserProjects: IDL.Func([IDL.Text], [IDL.Vec(Project)], ['query']),
+    getWorkers: IDL.Func([IDL.Nat], [IDL.Vec(Worker)], ['query']),
+    isCallerAdmin: IDL.Func([], [IDL.Bool], ['query']),
+    joinProject: IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, AppRole],
+      [JoinProjectResult],
+      [],
+    ),
+    login: IDL.Func([IDL.Text, IDL.Text], [LoginResult], []),
+    markAllNotifsRead: IDL.Func([IDL.Text], [OkBool], []),
+    markAttendance: IDL.Func(
+      [IDL.Text, IDL.Nat, IDL.Nat, IDL.Text, IDL.Text],
+      [OkMessage],
+      [],
+    ),
+    markNotifRead: IDL.Func([IDL.Text, IDL.Nat], [OkBool], []),
+    postChat: IDL.Func(
+      [IDL.Nat, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Bool, IDL.Text],
+      [PostChatResult],
+      [],
+    ),
+    recordTx: IDL.Func(
+      [IDL.Text, IDL.Nat, IDL.Nat, IDL.Text, IDL.Nat, IDL.Text, IDL.Text, IDL.Text],
+      [OkMessage],
+      [],
+    ),
+    register: IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, AppRole],
+      [OkMessage],
+      [],
+    ),
+    seedDemo: IDL.Func([], [OkBool], []),
+    submitPayroll: IDL.Func(
+      [IDL.Text, IDL.Nat, IDL.Text, IDL.Nat, IDL.Text],
+      [SubmitPayrollResult],
+      [],
+    ),
+    updateMaterial: IDL.Func(
+      [IDL.Text, IDL.Nat, IDL.Nat, IDL.Text, IDL.Text, IDL.Nat, IDL.Nat, IDL.Nat, IDL.Text],
+      [OkMessage],
+      [],
+    ),
+    updateProfile: IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text, IDL.Text],
+      [OkMessage],
+      [],
+    ),
+    updateTeamCode: IDL.Func(
+      [IDL.Text, IDL.Nat, IDL.Text, IDL.Text],
+      [OkMessage],
+      [],
+    ),
+    updateWorker: IDL.Func(
+      [IDL.Text, IDL.Nat, IDL.Nat, IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Text, IDL.Text],
+      [OkMessage],
+      [],
+    ),
+    verifyProjectPassword: IDL.Func(
+      [IDL.Text, IDL.Nat, IDL.Text],
+      [OkMessage],
+      [],
+    ),
   });
 };
 
