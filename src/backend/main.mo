@@ -3,9 +3,12 @@ import Text "mo:core/Text";
 import List "mo:core/List";
 import Map "mo:core/Map";
 import Principal "mo:core/Principal";
+import Time "mo:core/Time";
+import Int "mo:core/Int";
 
 import AccessControl "authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
+import Outcall "http-outcalls/outcall";
 
 actor {
   // ─── TYPES ───────────────────────────────────────────────────────────────
@@ -131,9 +134,6 @@ actor {
   };
 
   // ─── MIGRATION: old stable variables from previous version ──────────────
-  // These must be declared here (with the same names) so the upgrade
-  // compatibility check does not reject them as "implicitly discarded".
-  // They are unused in the new code and will be garbage-collected.
   type _OldUserRole = { #siteEngineer; #chiefEngineer; #materialsEngineer; #siteOwner };
   type _OldUser = { name : Text; email : Text; hashedPassword : Text; role : _OldUserRole };
   type _OldMaterial = { name : Text; quantity : Nat; reorderLevel : Nat };
@@ -150,18 +150,18 @@ actor {
 
   // ─── STATE ───────────────────────────────────────────────────────────────
 
-  stable var userList       : List.List<UserProfile>     = List.empty();
-  stable var projectList    : List.List<Project>         = List.empty();
-  stable var memberList     : List.List<ProjectMember>   = List.empty();
-  stable var workerList     : List.List<Worker>          = List.empty();
+  stable var userList       : List.List<UserProfile>      = List.empty();
+  stable var projectList    : List.List<Project>          = List.empty();
+  stable var memberList     : List.List<ProjectMember>    = List.empty();
+  stable var workerList     : List.List<Worker>           = List.empty();
   stable var attendanceList : List.List<AttendanceRecord> = List.empty();
-  stable var materialList   : List.List<Material>        = List.empty();
-  stable var txList         : List.List<MaterialTx>      = List.empty();
-  stable var progressList   : List.List<ProgressEntry>   = List.empty();
-  stable var payrollList    : List.List<PayrollRecord>   = List.empty();
-  stable var chatList       : List.List<ChatMessage>     = List.empty();
-  stable var notifList      : List.List<Notification>    = List.empty();
-  stable var auditList      : List.List<AuditEntry>      = List.empty();
+  stable var materialList   : List.List<Material>         = List.empty();
+  stable var txList         : List.List<MaterialTx>       = List.empty();
+  stable var progressList   : List.List<ProgressEntry>    = List.empty();
+  stable var payrollList    : List.List<PayrollRecord>    = List.empty();
+  stable var chatList       : List.List<ChatMessage>      = List.empty();
+  stable var notifList      : List.List<Notification>     = List.empty();
+  stable var auditList      : List.List<AuditEntry>       = List.empty();
 
   stable var nextProjId   : Nat = 1;
   stable var nextWrkId    : Nat = 1;
@@ -172,6 +172,12 @@ actor {
   stable var nextChatId   : Nat = 1;
   stable var nextNotifId  : Nat = 1;
   stable var nextAuditId  : Nat = 1;
+
+  // ─── EXCHANGE RATE CACHE ─────────────────────────────────────────────────
+  // Cached JSON string from open.er-api.com, refreshed at most once per hour
+  stable var cachedRatesJson    : Text = "";
+  stable var ratesCachedAt      : Int  = 0;  // nanoseconds from Time.now()
+  let ONE_HOUR_NS : Int = 3_600_000_000_000;
 
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
@@ -212,6 +218,36 @@ actor {
     }
   };
 
+  // ─── EXCHANGE RATES (HTTP OUTCALL) ────────────────────────────────────────
+
+  // Returns latest USD-base exchange rates as a JSON string.
+  // Uses open.er-api.com (free, no key needed).
+  // Result is cached for 1 hour to avoid excessive cycles spend.
+  public func getExchangeRates() : async { ok : Bool; json : Text } {
+    let now = Time.now();
+    if (cachedRatesJson != "" and (now - ratesCachedAt) < ONE_HOUR_NS) {
+      return { ok = true; json = cachedRatesJson };
+    };
+    try {
+      let url = "https://open.er-api.com/v6/latest/USD";
+      let json = await Outcall.httpGetRequest(url, [], transform);
+      cachedRatesJson := json;
+      ratesCachedAt   := now;
+      { ok = true; json }
+    } catch (_) {
+      // Return cached value (even if stale) or empty on first failure
+      if (cachedRatesJson != "") {
+        { ok = true; json = cachedRatesJson }
+      } else {
+        { ok = false; json = "{}" }
+      }
+    }
+  };
+
+  public query func transform(input : Outcall.TransformationInput) : async Outcall.TransformationOutput {
+    { input.response with headers = [] }
+  };
+
   // ─── AUTH ─────────────────────────────────────────────────────────────────
 
   public func register(
@@ -246,7 +282,6 @@ actor {
       case (?u) {
         if (u.pwHash != password) { return { ok = false; message = "Incorrect password" } };
         let updated : UserProfile = { email; name; pwHash = password; nationality; currency; phone; role = u.role };
-        memberList.mapInPlace(func(m : ProjectMember) : ProjectMember { m });
         userList.mapInPlace(func(x : UserProfile) : UserProfile { if (x.email == email) updated else x });
         { ok = true; message = "Profile updated" }
       };
@@ -407,7 +442,6 @@ actor {
       case (?#chiefEngineer) {};
       case _ { return { ok = false; message = "Only Site/Chief Engineers can mark attendance" } };
     };
-    // Remove existing record for same worker+date, then add updated one
     attendanceList.retain(func(a : AttendanceRecord) : Bool {
       not (a.workerId == workerId and a.date == date)
     });
@@ -433,7 +467,6 @@ actor {
     payrollList.add({ id = pid; projectId; period; totalAmount; status = "pending"; submittedBy = email; approvedBy = "" });
     nextPayId += 1;
     audit(email, "Submit Payroll", "Labour", period, ts);
-    // Notify chief engineers
     memberList.filter(func(m : ProjectMember) : Bool { m.projectId == projectId and m.role == #chiefEngineer })
       .forEach(func(m : ProjectMember) {
         notif(m.email, "payroll", "Payroll submitted for " # period, ts)
@@ -505,7 +538,6 @@ actor {
       case (?#chiefEngineer) {};
       case _ { return { ok = false; message = "Only Materials/Chief Engineers can record transactions" } };
     };
-    // Update stock
     var lowStock = false;
     var matName = "";
     materialList.mapInPlace(func(m : Material) : Material {
@@ -636,10 +668,10 @@ actor {
     if (userList.any(func(u : UserProfile) : Bool { u.email == "ce@demo.com" })) {
       return { ok = true };
     };
-    userList.add({ email = "ce@demo.com"; name = "Alex Chen (Demo CE)"; pwHash = "ChiefEng@123"; nationality = "US"; currency = "USD"; phone = "+1 555-0100"; role = #chiefEngineer });
-    userList.add({ email = "se@demo.com"; name = "Sam Patel (Demo SE)"; pwHash = "SiteEng@123"; nationality = "IN"; currency = "INR"; phone = "+91 98765 43210"; role = #siteEngineer });
-    userList.add({ email = "me@demo.com"; name = "Maria Lopez (Demo ME)"; pwHash = "MatEng@123"; nationality = "ES"; currency = "EUR"; phone = "+34 612 345 678"; role = #materialsEngineer });
-    userList.add({ email = "so@demo.com"; name = "John Smith (Demo SO)"; pwHash = "SiteOwner@123"; nationality = "GB"; currency = "GBP"; phone = "+44 7700 900123"; role = #siteOwner });
+    userList.add({ email = "ce@demo.com"; name = "Alex Chen (Demo CE)"; pwHash = "ChiefEng@123"; nationality = "\u{1F1FA}\u{1F1F8} United States"; currency = "USD ($)"; phone = "+1 555-0100"; role = #chiefEngineer });
+    userList.add({ email = "se@demo.com"; name = "Sam Patel (Demo SE)"; pwHash = "SiteEng@123"; nationality = "\u{1F1EE}\u{1F1F3} India"; currency = "INR (\u{20B9})"; phone = "+91 98765 43210"; role = #siteEngineer });
+    userList.add({ email = "me@demo.com"; name = "Maria Lopez (Demo ME)"; pwHash = "MatEng@123"; nationality = "\u{1F1EA}\u{1F1F8} Spain"; currency = "EUR (\u{20AC})"; phone = "+34 612 345 678"; role = #materialsEngineer });
+    userList.add({ email = "so@demo.com"; name = "John Smith (Demo SO)"; pwHash = "SiteOwner@123"; nationality = "\u{1F1EC}\u{1F1E7} United Kingdom"; currency = "GBP (\u{00A3})"; phone = "+44 7700 900123"; role = #siteOwner });
 
     projectList.add({ id = 1; name = "Project Alpha"; location = "Mumbai, India"; startDate = "2026-01-01"; teamCode = "ALPHA42"; pwHash = "ALPHA42"; completion = 45; budget = 5000000; createdBy = "ce@demo.com" });
     projectList.add({ id = 2; name = "Project Beta"; location = "Bangalore, India"; startDate = "2026-02-01"; teamCode = "BETA56"; pwHash = "BETA56"; completion = 20; budget = 3000000; createdBy = "ce@demo.com" });

@@ -30,14 +30,14 @@ function getActor() {
 }
 
 // ---- Seed demo ----
-const SEEDED_KEY = "cmp_demo_seeded_v1";
-
+// Always call seedDemo on every app load — the Motoko function is idempotent:
+// it checks if ce@demo.com already exists before inserting anything.
+// This guarantees both draft and live deployments always have demo data,
+// regardless of any previously stored localStorage flags.
 export async function ensureDemoSeeded(): Promise<void> {
   try {
-    if (localStorage.getItem(SEEDED_KEY)) return;
     const actor = await getActor();
     await actor.seedDemo();
-    localStorage.setItem(SEEDED_KEY, "1");
   } catch {
     // silently ignore — demo seeding is best-effort
   }
@@ -45,8 +45,20 @@ export async function ensureDemoSeeded(): Promise<void> {
 
 // ---- Auth ----
 export async function canisterLogin(email: string, password: string) {
-  const actor = await getActor();
-  return actor.login(email, password);
+  try {
+    const actor = await getActor();
+    const result = await actor.login(email, password);
+    return result;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    // Surface friendly message for common canister errors
+    if (msg.includes("CANISTER_ID_BACKEND") || msg.includes("canister")) {
+      throw new Error(
+        "Backend service unavailable. Please try again in a moment.",
+      );
+    }
+    throw new Error(msg || "Login failed");
+  }
 }
 
 export async function canisterRegister(
@@ -58,17 +70,27 @@ export async function canisterRegister(
   phone: string,
   role: AppRole,
 ) {
-  const actor = await getActor();
-  const roleVariant: { [K in AppRole]?: null } = { [role]: null };
-  return actor.register(
-    email,
-    name,
-    password,
-    nationality,
-    currency,
-    phone,
-    roleVariant,
-  );
+  try {
+    const actor = await getActor();
+    const roleVariant: { [K in AppRole]?: null } = { [role]: null };
+    return await actor.register(
+      email,
+      name,
+      password,
+      nationality,
+      currency,
+      phone,
+      roleVariant,
+    );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("CANISTER_ID_BACKEND") || msg.includes("canister")) {
+      throw new Error(
+        "Backend service unavailable. Please try again in a moment.",
+      );
+    }
+    throw new Error(msg || "Registration failed");
+  }
 }
 
 export async function canisterChangePassword(

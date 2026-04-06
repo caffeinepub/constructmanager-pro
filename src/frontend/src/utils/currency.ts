@@ -27,8 +27,54 @@ const USD_RATES: Record<string, number> = {
   "BRL (R$)": 5.0,
 };
 
+// Session-level cache for live rates
+let liveRates: Record<string, number> | null = null;
+
+/**
+ * Fetches live exchange rates from open.er-api.com.
+ * Results are cached in sessionStorage for the browser session.
+ * Falls back to static USD_RATES silently on any error.
+ */
+export async function loadLiveRates(): Promise<void> {
+  // Check sessionStorage first (cache for this browser session)
+  const cached = sessionStorage.getItem("cmp_exchange_rates");
+  if (cached) {
+    try {
+      liveRates = JSON.parse(cached);
+      return;
+    } catch {
+      /* ignore parse errors */
+    }
+  }
+  try {
+    const response = await fetch("https://open.er-api.com/v6/latest/USD");
+    if (response.ok) {
+      const data = await response.json();
+      if (data.rates) {
+        const rates: Record<string, number> = {
+          "USD ($)": 1,
+          "EUR (€)": data.rates.EUR ?? 0.92,
+          "GBP (£)": data.rates.GBP ?? 0.79,
+          "INR (₹)": data.rates.INR ?? 83,
+          "JPY (¥)": data.rates.JPY ?? 150,
+          "AED (د.إ)": data.rates.AED ?? 3.67,
+          "SGD (S$)": data.rates.SGD ?? 1.35,
+          "AUD (A$)": data.rates.AUD ?? 1.53,
+          "CAD (C$)": data.rates.CAD ?? 1.36,
+          "BRL (R$)": data.rates.BRL ?? 5.0,
+        };
+        liveRates = rates;
+        sessionStorage.setItem("cmp_exchange_rates", JSON.stringify(rates));
+      }
+    }
+  } catch {
+    // Silently fall back to static rates — no error surfaced to user
+  }
+}
+
 export function convertFromUSD(usdPrice: number, currency: string): number {
-  const rate = USD_RATES[currency] ?? 83;
+  const rates = liveRates ?? USD_RATES;
+  const rate = rates[currency] ?? 83;
   return Math.round(usdPrice * rate * 100) / 100;
 }
 

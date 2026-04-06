@@ -2,10 +2,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Eye, EyeOff, HardHat, LogIn } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  EyeOff,
+  HardHat,
+  LogIn,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { roleToDashboardPath, useAuth } from "../AuthContext";
+import { useAuth } from "../AuthContext";
 
 const DEMO_CREDS = [
   {
@@ -13,24 +20,32 @@ const DEMO_CREDS = [
     email: "ce@demo.com",
     pw: "ChiefEng@123",
     color: "#f97316",
+    bg: "#fff7ed",
+    border: "#fed7aa",
   },
   {
     role: "Site Engineer",
     email: "se@demo.com",
     pw: "SiteEng@123",
     color: "#0ea5e9",
+    bg: "#f0f9ff",
+    border: "#bae6fd",
   },
   {
     role: "Materials Engineer",
     email: "me@demo.com",
     pw: "MatEng@123",
     color: "#10b981",
+    bg: "#f0fdf4",
+    border: "#bbf7d0",
   },
   {
     role: "Site Owner",
     email: "so@demo.com",
     pw: "SiteOwner@123",
     color: "#8b5cf6",
+    bg: "#faf5ff",
+    border: "#ddd6fe",
   },
 ];
 
@@ -58,9 +73,11 @@ export default function LoginPage() {
     }
   }
 
-  function fillCred(email: string, pw: string) {
-    setEmail(email);
+  function fillCred(credEmail: string, pw: string) {
+    setEmail(credEmail);
     setPassword(pw);
+    setShowCreds(false);
+    toast.info("Demo credentials loaded — click Sign In to continue.");
   }
 
   return (
@@ -162,42 +179,68 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <div className="mt-6 border-t pt-4">
+            {/* Demo Credentials — polished collapsible card */}
+            <div className="mt-6">
               <button
                 type="button"
                 onClick={() => setShowCreds(!showCreds)}
-                className="w-full text-sm text-slate-500 hover:text-[#f97316] flex items-center justify-center gap-1"
+                className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 border-dashed border-[#f97316]/40 bg-[#fff7ed] hover:bg-[#fff3e0] hover:border-[#f97316]/60 transition-all text-sm font-medium text-[#f97316]"
+                data-ocid="login.toggle"
               >
-                {showCreds ? "Hide" : "View"} Demo Credentials
+                <span>🔑 Demo Credentials</span>
+                {showCreds ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
               </button>
+
               {showCreds && (
-                <div className="mt-3 space-y-2">
+                <div className="mt-2 space-y-2 p-1">
                   {DEMO_CREDS.map((c) => (
                     <div
                       key={c.email}
-                      className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2"
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 border"
+                      style={{
+                        backgroundColor: c.bg,
+                        borderColor: c.border,
+                      }}
                     >
-                      <div>
-                        <p
-                          className="text-xs font-semibold"
-                          style={{ color: c.color }}
+                      <div className="flex-1 min-w-0">
+                        <span
+                          className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold mb-1"
+                          style={{
+                            backgroundColor: `${c.color}20`,
+                            color: c.color,
+                          }}
                         >
                           {c.role}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {c.email} / <span className="font-mono">{c.pw}</span>
+                        </span>
+                        <p className="text-xs text-slate-600 truncate">
+                          <span className="font-medium">{c.email}</span>{" "}
+                          <span className="text-slate-400">/</span>{" "}
+                          <span className="font-mono text-slate-500">
+                            {c.pw}
+                          </span>
                         </p>
                       </div>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-7 text-xs"
+                        className="h-7 text-xs shrink-0 border-current hover:opacity-80"
+                        style={{ color: c.color, borderColor: c.border }}
                         onClick={() => fillCred(c.email, c.pw)}
                       >
                         Use
                       </Button>
                     </div>
                   ))}
+                  <p className="text-xs text-slate-400 text-center pt-1">
+                    Project passcode:{" "}
+                    <span className="font-mono font-semibold text-slate-500">
+                      ALPHA42
+                    </span>
+                  </p>
                 </div>
               )}
             </div>

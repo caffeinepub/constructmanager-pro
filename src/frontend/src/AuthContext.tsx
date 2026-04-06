@@ -11,7 +11,9 @@ import {
   canisterChangePassword,
   canisterLogin,
   canisterRegister,
+  ensureDemoSeeded,
 } from "./canister";
+import { loadLiveRates } from "./utils/currency";
 
 export type UserRole =
   | "siteOwner"
@@ -152,21 +154,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setUserRef = useRef(setUser);
   setUserRef.current = setUser;
 
-  // Restore auth from localStorage on mount
+  // Restore auth from localStorage on mount, seed demo data, and load live exchange rates
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (stored) setUser(JSON.parse(stored));
-    } catch {
-      /* ignore */
-    }
-    setIsLoading(false);
+    const init = async () => {
+      try {
+        const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (stored) setUser(JSON.parse(stored));
+      } catch {
+        /* ignore */
+      }
+      // Run seed + exchange rates in parallel — neither blocks the other
+      await Promise.all([ensureDemoSeeded(), loadLiveRates()]);
+      setIsLoading(false);
+    };
+    init();
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const emailLower = email.toLowerCase();
+    const emailLower = email.toLowerCase().trim();
     const result = await canisterLogin(emailLower, password);
-    if (!result.ok) throw new Error(result.message || "Login failed");
+    if (!result.ok) {
+      throw new Error(
+        result.message || "Login failed. Check your email and password.",
+      );
+    }
     const authUser: AuthUser = {
       name: result.name,
       email: emailLower,
@@ -189,21 +200,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       currency?: string,
       phone?: string,
     ) => {
-      const emailLower = email.toLowerCase();
+      const emailLower = email.toLowerCase().trim();
       const result = await canisterRegister(
         emailLower,
-        name,
+        name.trim(),
         password,
         nationality ?? "",
         currency ?? "",
         phone ?? "",
         role,
       );
-      if (!result.ok) throw new Error(result.message || "Registration failed");
+      if (!result.ok) {
+        throw new Error(result.message || "Registration failed.");
+      }
       // Auto-login after registration
       const loginResult = await canisterLogin(emailLower, password);
       const authUser: AuthUser = {
-        name,
+        name: name.trim(),
         email: emailLower,
         role,
         nationality,
@@ -211,7 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         phone,
       };
       if (loginResult.ok) {
-        authUser.name = loginResult.name || name;
+        authUser.name = loginResult.name || name.trim();
         authUser.nationality = loginResult.nationality || nationality;
         authUser.currency = loginResult.currency || currency;
         authUser.phone = loginResult.phone || phone;
@@ -339,7 +352,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const resetMemberPassword = useCallback(async (_memberEmail: string) => {
-    await new Promise((r) => setTimeout(r, 300));
+    // Password reset requires the member's current password for verification.
+    // Direct admin password override is not supported via the canister API.
+    // Ask the member to use the Change Password option in their profile settings.
+    throw new Error(
+      "To reset a member's password, ask them to use 'Change Password' in their profile settings.",
+    );
   }, []);
 
   const changePassword = useCallback(

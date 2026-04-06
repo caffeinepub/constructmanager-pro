@@ -46,9 +46,18 @@ export default function SignUpPage() {
   const [role, setRole] = useState<UserRole | "">("");
   const [nationality, setNationality] = useState("🇮🇳 India");
   const [currency, setCurrency] = useState("INR (₹)");
+  const [dialCode, setDialCode] = useState("+91");
+  const [phone, setPhone] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Sync dial code when nationality changes
+  function handleNationalityChange(val: string) {
+    setNationality(val);
+    const found = NATIONALITIES.find((n) => n.label === val);
+    if (found) setDialCode(found.code);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -66,6 +75,7 @@ export default function SignUpPage() {
     }
     setLoading(true);
     try {
+      const phoneValue = phone.trim() ? `${dialCode} ${phone.trim()}` : "";
       await register(
         name.trim(),
         email.trim(),
@@ -73,6 +83,7 @@ export default function SignUpPage() {
         role as UserRole,
         nationality,
         currency,
+        phoneValue,
       );
       toast.success("Account created! Welcome to ConstructManager Pro.");
       navigate({ to: "/projects" });
@@ -152,7 +163,7 @@ export default function SignUpPage() {
                   <select
                     id="nationality"
                     value={nationality}
-                    onChange={(e) => setNationality(e.target.value)}
+                    onChange={(e) => handleNationalityChange(e.target.value)}
                     className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                     data-ocid="signup.select"
                   >
@@ -178,6 +189,36 @@ export default function SignUpPage() {
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* Phone number row */}
+              <div>
+                <Label htmlFor="phone">
+                  Phone Number{" "}
+                  <span className="text-slate-400 font-normal">(optional)</span>
+                </Label>
+                <div className="grid grid-cols-[140px_1fr] gap-2 mt-1">
+                  <select
+                    value={dialCode}
+                    onChange={(e) => setDialCode(e.target.value)}
+                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    data-ocid="signup.select"
+                  >
+                    {NATIONALITIES.map((n) => (
+                      <option key={`${n.label}-${n.code}`} value={n.code}>
+                        {n.label.split(" ")[0]} {n.code}
+                      </option>
+                    ))}
+                  </select>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="Phone number (optional)"
+                    data-ocid="signup.input"
+                  />
                 </div>
               </div>
 
