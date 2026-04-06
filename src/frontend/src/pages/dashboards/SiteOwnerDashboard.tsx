@@ -8,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useNavigate } from "@tanstack/react-router";
 import {
   BarChart2,
   DollarSign,
@@ -15,7 +16,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../../AuthContext";
 import { useProjectData } from "../../ProjectDataContext";
 import DashboardLayout from "../../components/DashboardLayout";
@@ -34,8 +35,16 @@ function getMaterialStatus(m: { currentStock: number; reorderLevel: number }):
 }
 
 export default function SiteOwnerDashboard() {
+  const navigate = useNavigate();
   const { data } = useProjectData();
-  const { user } = useAuth();
+  const { user, activeProject } = useAuth();
+
+  useEffect(() => {
+    if (!activeProject) {
+      navigate({ to: "/projects" });
+    }
+  }, [activeProject, navigate]);
+
   const userCurrency = user?.currency ?? "INR (₹)";
   const fc = (n: number) => formatCurrencyValue(n, userCurrency);
   const [activeTab, setActiveTab] = useState("overview");
@@ -61,6 +70,8 @@ export default function SiteOwnerDashboard() {
   const topMaterials = [...data.materials]
     .sort((a, b) => b.currentStock * b.unitPrice - a.currentStock * a.unitPrice)
     .slice(0, 5);
+
+  if (!activeProject) return null;
 
   return (
     <DashboardLayout

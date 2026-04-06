@@ -25,6 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { useNavigate } from "@tanstack/react-router";
 import {
   BarChart2,
   Camera,
@@ -36,7 +37,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import React from "react";
+import React, { useEffect } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "../../AuthContext";
@@ -180,7 +181,15 @@ function WorkerModal({ open, onClose, initial, onSave }: WorkerModalProps) {
 }
 
 export default function SiteEngineerDashboard() {
+  const navigate = useNavigate();
   const { user, activeProject } = useAuth();
+
+  useEffect(() => {
+    if (!activeProject) {
+      navigate({ to: "/projects" });
+    }
+  }, [activeProject, navigate]);
+
   const userCurrency = user?.currency ?? "INR (₹)";
   const fc = (n: number) => formatCurrencyValue(n, userCurrency);
   const {
@@ -302,6 +311,8 @@ export default function SiteEngineerDashboard() {
     toast.success("Payroll submitted for approval!");
     setPayrollPeriod("");
   }
+
+  if (!activeProject) return null;
 
   return (
     <DashboardLayout

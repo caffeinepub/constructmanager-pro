@@ -30,7 +30,7 @@ import {
   Unlock,
   UserPlus,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   type Project,
@@ -128,33 +128,36 @@ export default function ProjectsDashboard() {
 
   const isChief = user?.role === "chiefEngineer";
 
-  // Load user's projects from canister on mount
-  useEffect(() => {
+  const [fetchError, setFetchError] = useState(false);
+
+  const fetchProjects = useCallback(async () => {
     if (!user) return;
     setLoadingProjects(true);
-
-    const fetchProjects = async () => {
-      try {
-        let raw: Awaited<ReturnType<typeof canisterGetUserProjects>>;
-        if (isChief && showAll) {
-          raw = await canisterGetAllProjects();
-        } else {
-          raw = await canisterGetUserProjects(user.email);
-        }
-        const mapped = raw.map((p) =>
-          mapCanisterProject(p, user.email, user.role),
-        );
-        setProjects(mapped);
-      } catch (err) {
-        console.error("Failed to load projects:", err);
-        toast.error("Failed to load projects");
-      } finally {
-        setLoadingProjects(false);
+    setFetchError(false);
+    try {
+      let raw: Awaited<ReturnType<typeof canisterGetUserProjects>>;
+      if (isChief && showAll) {
+        raw = await canisterGetAllProjects();
+      } else {
+        raw = await canisterGetUserProjects(user.email);
       }
-    };
-
-    fetchProjects();
+      const mapped = raw.map((p) =>
+        mapCanisterProject(p, user.email, user.role),
+      );
+      setProjects(mapped);
+    } catch (err) {
+      console.error("Failed to load projects:", err);
+      toast.error("Failed to load projects");
+      setFetchError(true);
+    } finally {
+      setLoadingProjects(false);
+    }
   }, [user, isChief, showAll, setProjects]);
+
+  // Load user's projects from canister on mount
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
   function getUserRoleInProject(_project: Project): UserRole {
     return user?.role ?? "siteEngineer";
@@ -403,6 +406,22 @@ export default function ProjectsDashboard() {
             {[1, 2, 3].map((i) => (
               <Skeleton key={i} className="h-40 rounded-2xl" />
             ))}
+          </div>
+        ) : fetchError && projects.length === 0 ? (
+          <div className="text-center py-16" data-ocid="projects.error_state">
+            <p className="text-red-500 font-medium mb-3">
+              Failed to load projects from the backend.
+            </p>
+            <Button
+              onClick={() => {
+                setFetchError(false);
+                setLoadingProjects(true);
+                fetchProjects();
+              }}
+              variant="outline"
+            >
+              Retry
+            </Button>
           </div>
         ) : projects.length === 0 ? (
           <div className="text-center py-16" data-ocid="projects.empty_state">

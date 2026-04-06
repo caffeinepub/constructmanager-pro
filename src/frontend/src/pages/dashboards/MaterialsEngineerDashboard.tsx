@@ -25,6 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { useNavigate } from "@tanstack/react-router";
 import {
   AlertTriangle,
   CheckCircle,
@@ -35,7 +36,7 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "../../AuthContext";
 import { type Material, useProjectData } from "../../ProjectDataContext";
@@ -230,7 +231,15 @@ function MaterialModal({ open, onClose, initial, onSave }: MaterialModalProps) {
 }
 
 export default function MaterialsEngineerDashboard() {
+  const navigate = useNavigate();
   const { user, activeProject } = useAuth();
+
+  useEffect(() => {
+    if (!activeProject) {
+      navigate({ to: "/projects" });
+    }
+  }, [activeProject, navigate]);
+
   const userCurrency = user?.currency ?? "INR (₹)";
   const fc = (n: number) => formatCurrencyValue(n, userCurrency);
   const {
@@ -352,6 +361,8 @@ export default function MaterialsEngineerDashboard() {
     setOutwardNotes("");
     setOutwardArea("");
   }
+
+  if (!activeProject) return null;
 
   return (
     <DashboardLayout

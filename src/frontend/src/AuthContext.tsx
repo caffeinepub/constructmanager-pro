@@ -213,24 +213,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!result.ok) {
         throw new Error(result.message || "Registration failed.");
       }
-      // Auto-login after registration
-      const loginResult = await canisterLogin(emailLower, password);
-      const authUser: AuthUser = {
-        name: name.trim(),
-        email: emailLower,
-        role,
-        nationality,
-        currency,
-        phone,
-      };
-      if (loginResult.ok) {
-        authUser.name = loginResult.name || name.trim();
-        authUser.nationality = loginResult.nationality || nationality;
-        authUser.currency = loginResult.currency || currency;
-        authUser.phone = loginResult.phone || phone;
-      }
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authUser));
-      setUserRef.current(authUser);
+      // Do NOT auto-login — caller will redirect to /login
+      // The user must sign in explicitly after registration
     },
     [],
   );

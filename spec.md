@@ -2,61 +2,40 @@
 
 ## Current State
 
-Version 19 is deployed with a full Motoko/ICP backend canister providing persistent storage. The frontend is a React/Tailwind SPA with:
-- Complete authentication (sign-up, login, show/hide password, demo seed via `seedDemo()`)
-- RBAC with 4 roles: Chief Engineer, Site Engineer, Materials Engineer, Site Owner
-- Multi-tenant projects (Team Code + Team Password verified server-side)
-- Labour management: worker CRUD, attendance marking, payroll approval
-- Material management: autocomplete from 40+ master DB items, GRN/issue forms, low-stock alerts
-- Site progress: daily % updates, inline photo attachments
-- Group chat + direct messages (per project)
-- Notifications (in-app bell)
-- PDF + CSV export in all tabs
-- Demo mode (`/demo` page, public sandbox)
-- User Manual page
-- Floating calculator
-- Nationality/currency selector at sign-up with live exchange rates
-- Phone + dial code field on sign-up
+Version 22 is deployed with a full Motoko backend (ICP canister), React frontend, 4-step sign-up wizard, role-based dashboards, group chat, PDF/CSV export, autocomplete materials database (113 items), inline progress photos, and multi-tenancy.
 
-Known issues:
-- Draft build not reflecting properly in live deployment (stale canister ID / seed data)
-- Some data may not hydrate correctly after canister redeployment
+The build passes cleanly (no TypeScript or lint errors). The reported issues are runtime/logic bugs:
+
+1. **Dashboard crash when `activeProject` is null** — if a user navigates directly to a dashboard URL (`/dashboard/chief-engineer`, etc.) without entering a project first (e.g., using browser back/forward), `activeProject` is `null`. The dashboard renders anyway and tries to use `activeProject.id` (which throws). There is no redirect-back-to-projects guard.
+
+2. **`ProjectDataContext` NaN canister calls** — `loadAllData` calls `Number(pid)` where `pid` can be `null` (string), resulting in `NaN` being passed as `BigInt` to the canister, causing a crash. The `useEffect` guards `if (projectId)` but the `reloadData` callback does not check.
+
+3. **Demo seed counter mismatch after canister upgrade** — `seedDemo` hardcodes project IDs 1/2/3 and sets `nextProjId := 4` etc., but if the canister was already running (stable vars survived upgrade), `nextProjId` may already be > 4. The seed function correctly early-returns if `ce@demo.com` exists, so this is not a conflict — but if the canister was wiped/redeployed fresh, the seed should work correctly. This is actually fine as-is.
+
+4. **Missing loading skeleton / error state** on Projects Dashboard when the canister call fails — `loadingProjects` state exists but no error state, so on canister unavailability the page shows empty with no explanation.
+
+5. **`ensureDemoSeeded` race** — it runs in `AuthProvider` on every mount but doesn't block `isLoading = false`. If the canister takes time to respond, the user sees the login screen before seeding completes, leading to "User not found" errors when they immediately try the demo credentials.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Ensure all existing features are fully wired, working, and visible end-to-end
-- Improve `ensureDemoSeeded()` to always be idempotent and reliable
-- Improve landing page to show live role-specific dashboard preview after login
-- Audit all 4 role dashboards for completeness and consistency
-- Improve error handling and loading states everywhere
-- Add Gantt chart visualization (simple CSS-based bar chart) to Site Progress tab
-- Improve payroll workflow UI (clearer submission + approval states)
-- Add audit log tab to Chief Engineer dashboard (already backed by canister)
+- Guard in all 4 dashboard components: if `!activeProject`, redirect to `/projects` instead of rendering a broken dashboard.
+- An error banner on the Projects Dashboard when the canister fetch fails (currently just a toast, page looks empty).
+- A `seeding` loading state in AuthContext so login is blocked until `seedDemo()` resolves.
 
 ### Modify
-- Keep exact visual theme: light grey (#f1f5f9) background, orange (#f97316) accents, white cards
-- Improve ProjectsDashboard to better show project cards with progress bar
-- `ensureDemoSeeded` is called on every load (already idempotent in canister)
-- Fix any issues with role routing after login (ensure correct dashboard is navigated to)
-- Expand master materials database to 100+ items
+- `ProjectDataContext.reloadData`: add `if (!projectId) return;` guard before calling `loadAllData`.
+- `AuthProvider` init: await `ensureDemoSeeded()` before setting `isLoading = false` (it already does `await Promise.all([ensureDemoSeeded(), loadLiveRates()])` — verify this correctly awaits both before setting `isLoading = false`).
+- Projects Dashboard: add an `error` state; on fetch failure show a visible error card with a retry button instead of just a toast.
+- Demo seed timing: the splash/loading screen should stay visible while seeding is in progress.
 
 ### Remove
-- Nothing to remove
+- Nothing removed.
 
 ## Implementation Plan
 
-1. Regenerate Motoko backend with expanded master materials and improved audit log support
-2. Rebuild frontend with:
-   - Landing page with inline demo preview after login toggle
-   - Auth pages (login, signup) — already good, minor polish
-   - Projects dashboard — improve cards, progress bars
-   - Chief Engineer dashboard — add Audit Log tab, improve payroll approval UI
-   - Site Engineer dashboard — add simple Gantt chart to progress tab
-   - Materials Engineer dashboard — expand autocomplete to 100+ items
-   - Site Owner dashboard — improve financial overview widgets
-   - All dashboards: ensure CSV + PDF export buttons work
-   - Group chat + DM tabs: verify wiring
-   - Notifications bell: verify wiring
-3. Validate build (typecheck + lint)
-4. Deploy
+1. Add `if (!activeProject) { navigate({ to: '/projects' }); return null; }` early return to all 4 dashboard files: `ChiefEngineerDashboard.tsx`, `SiteEngineerDashboard.tsx`, `MaterialsEngineerDashboard.tsx`, `SiteOwnerDashboard.tsx`.
+2. Add null guard in `ProjectDataContext.reloadData`.
+3. Add `error` state and retry button to `ProjectsDashboard.tsx`.
+4. Verify `AuthProvider` loading sequence awaits seed before setting `isLoading = false` — fix if needed.
+5. Run typecheck and build.

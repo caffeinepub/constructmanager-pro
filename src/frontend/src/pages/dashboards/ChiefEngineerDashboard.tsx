@@ -25,6 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { useNavigate } from "@tanstack/react-router";
 import {
   AlertTriangle,
   Camera,
@@ -41,7 +42,7 @@ import {
   Users,
   XCircle,
 } from "lucide-react";
-import React from "react";
+import React, { useEffect } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "../../AuthContext";
@@ -308,6 +309,7 @@ function MaterialModal({ open, onClose, initial, onSave }: MaterialModalProps) {
 }
 
 export default function ChiefEngineerDashboard() {
+  const navigate = useNavigate();
   const {
     user,
     activeProject,
@@ -316,6 +318,13 @@ export default function ChiefEngineerDashboard() {
     addMemberToProject,
     removeMemberFromProject,
   } = useAuth();
+
+  useEffect(() => {
+    if (!activeProject) {
+      navigate({ to: "/projects" });
+    }
+  }, [activeProject, navigate]);
+
   const userCurrency = user?.currency ?? "INR (₹)";
   const fc = (n: number) => formatCurrencyValue(n, userCurrency);
   const {
@@ -618,6 +627,8 @@ export default function ChiefEngineerDashboard() {
     auditFilter === "All"
       ? data.auditLog
       : data.auditLog.filter((e) => e.module === auditFilter);
+
+  if (!activeProject) return null;
 
   return (
     <DashboardLayout
