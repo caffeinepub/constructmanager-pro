@@ -57,6 +57,7 @@ import {
   exportMaterialsCSV,
   exportProgressCSV,
 } from "../../utils/csvExport";
+import { formatCurrencyValue } from "../../utils/currency";
 import {
   exportAttendancePDF,
   exportMaterialsPDF,
@@ -70,13 +71,7 @@ function getMaterialStatus(m: Material): "OK" | "Low" | "Critical" {
   return "OK";
 }
 
-function formatCurrency(n: number) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(n);
-}
+// formatCurrency replaced by formatCurrencyValue from currency utils
 
 // ---- Worker Modal ----
 interface WorkerModalProps {
@@ -321,6 +316,8 @@ export default function ChiefEngineerDashboard() {
     addMemberToProject,
     removeMemberFromProject,
   } = useAuth();
+  const userCurrency = user?.currency ?? "INR (₹)";
+  const fc = (n: number) => formatCurrencyValue(n, userCurrency);
   const {
     data,
     addWorker,
@@ -588,7 +585,7 @@ export default function ChiefEngineerDashboard() {
       user: user?.name ?? "",
       action: "Set Budget",
       module: "Admin",
-      details: `Budget set to ${formatCurrency(Number(budgetInput))}`,
+      details: `Budget set to ${fc(Number(budgetInput))}`,
     });
     toast.success("Budget saved!");
   }
@@ -657,7 +654,7 @@ export default function ChiefEngineerDashboard() {
                   </span>
                 </div>
                 <p className="text-xl font-bold text-[#0f172a]">
-                  {formatCurrency(totalMaterialValue)}
+                  {fc(totalMaterialValue)}
                 </p>
                 <p className="text-xs text-slate-400">{alertCount} alerts</p>
               </CardContent>
@@ -686,7 +683,7 @@ export default function ChiefEngineerDashboard() {
                   <span className="text-xs text-slate-500">Labour Cost</span>
                 </div>
                 <p className="text-xl font-bold text-[#0f172a]">
-                  {formatCurrency(totalLabourCost)}
+                  {fc(totalLabourCost)}
                 </p>
                 <p className="text-xs text-slate-400">Total wages paid</p>
               </CardContent>
@@ -700,8 +697,8 @@ export default function ChiefEngineerDashboard() {
                     Budget Usage
                   </span>
                   <span className="text-sm text-slate-500">
-                    {formatCurrency(totalLabourCost + totalMaterialValue)} /{" "}
-                    {formatCurrency(data.budget)}
+                    {fc(totalLabourCost + totalMaterialValue)} /{" "}
+                    {fc(data.budget)}
                   </span>
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-2">
@@ -987,7 +984,7 @@ export default function ChiefEngineerDashboard() {
                       <TableRow className="font-bold bg-slate-50">
                         <TableCell colSpan={4}>Total</TableCell>
                         <TableCell className="text-[#f97316]">
-                          {formatCurrency(totalLabourCost)}
+                          {fc(totalLabourCost)}
                         </TableCell>
                       </TableRow>
                     </TableBody>
@@ -1019,7 +1016,7 @@ export default function ChiefEngineerDashboard() {
                             Submitted by {p.submittedBy} on {p.submittedAt}
                           </p>
                           <p className="text-lg font-bold text-[#f97316] mt-1">
-                            {formatCurrency(p.totalAmount)}
+                            {fc(p.totalAmount)}
                           </p>
                         </div>
                         <div className="flex flex-col gap-2 items-end">
@@ -1174,7 +1171,7 @@ export default function ChiefEngineerDashboard() {
                               <TableCell>{m.reorderLevel}</TableCell>
                               <TableCell>₹{m.unitPrice}</TableCell>
                               <TableCell className="font-semibold">
-                                {formatCurrency(m.currentStock * m.unitPrice)}
+                                {fc(m.currentStock * m.unitPrice)}
                               </TableCell>
                               <TableCell className="text-slate-500">
                                 {m.supplier}
@@ -1916,12 +1913,12 @@ export default function ChiefEngineerDashboard() {
                   <div className="mt-4">
                     <p className="text-sm">
                       <span className="text-slate-500">Budget: </span>
-                      <strong>{formatCurrency(data.budget)}</strong>
+                      <strong>{fc(data.budget)}</strong>
                     </p>
                     <p className="text-sm">
                       <span className="text-slate-500">Spent: </span>
                       <strong>
-                        {formatCurrency(totalLabourCost + totalMaterialValue)}
+                        {fc(totalLabourCost + totalMaterialValue)}
                       </strong>
                     </p>
                     <p className="text-sm">
@@ -1933,9 +1930,7 @@ export default function ChiefEngineerDashboard() {
                             : "text-green-600"
                         }
                       >
-                        {formatCurrency(
-                          data.budget - totalLabourCost - totalMaterialValue,
-                        )}
+                        {fc(data.budget - totalLabourCost - totalMaterialValue)}
                       </strong>
                     </p>
                   </div>

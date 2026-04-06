@@ -44,16 +44,10 @@ import { type Worker, useProjectData } from "../../ProjectDataContext";
 import DashboardLayout from "../../components/DashboardLayout";
 import InlineChatPanel from "../../components/InlineChatPanel";
 import { exportAttendanceCSV, exportProgressCSV } from "../../utils/csvExport";
-import { NATIONALITIES } from "../../utils/currency";
+import { NATIONALITIES, formatCurrencyValue } from "../../utils/currency";
 import { exportAttendancePDF, exportProgressPDF } from "../../utils/pdfExport";
 
-function formatCurrency(n: number) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(n);
-}
+// formatCurrency replaced by formatCurrencyValue from currency utils
 
 interface WorkerModalProps {
   open: boolean;
@@ -187,6 +181,8 @@ function WorkerModal({ open, onClose, initial, onSave }: WorkerModalProps) {
 
 export default function SiteEngineerDashboard() {
   const { user, activeProject } = useAuth();
+  const userCurrency = user?.currency ?? "INR (₹)";
+  const fc = (n: number) => formatCurrencyValue(n, userCurrency);
   const {
     data,
     addWorker,
@@ -301,7 +297,7 @@ export default function SiteEngineerDashboard() {
       user: user?.name ?? "",
       action: "Submitted Payroll",
       module: "Labour",
-      details: `${payrollPeriod} payroll ${formatCurrency(totalLabourCost)} submitted`,
+      details: `${payrollPeriod} payroll ${fc(totalLabourCost)} submitted`,
     });
     toast.success("Payroll submitted for approval!");
     setPayrollPeriod("");
@@ -382,9 +378,7 @@ export default function SiteEngineerDashboard() {
                   <BarChart2 className="w-4 h-4 text-[#8b5cf6]" />
                   <span className="text-xs text-slate-500">Total Wages</span>
                 </div>
-                <p className="text-xl font-bold">
-                  {formatCurrency(totalLabourCost)}
-                </p>
+                <p className="text-xl font-bold">{fc(totalLabourCost)}</p>
               </CardContent>
             </Card>
           </div>
@@ -627,7 +621,7 @@ export default function SiteEngineerDashboard() {
                       <TableRow className="font-bold bg-slate-50">
                         <TableCell colSpan={4}>Total</TableCell>
                         <TableCell className="text-[#0ea5e9]">
-                          {formatCurrency(totalLabourCost)}
+                          {fc(totalLabourCost)}
                         </TableCell>
                       </TableRow>
                     </TableBody>
@@ -658,7 +652,7 @@ export default function SiteEngineerDashboard() {
                   <div className="bg-slate-50 rounded-xl p-3">
                     <p className="text-sm text-slate-500">Total Amount</p>
                     <p className="text-2xl font-bold text-[#0ea5e9]">
-                      {formatCurrency(totalLabourCost)}
+                      {fc(totalLabourCost)}
                     </p>
                   </div>
                   <Button
@@ -683,7 +677,7 @@ export default function SiteEngineerDashboard() {
                           {p.submittedAt}
                         </p>
                         <p className="text-[#0ea5e9] font-bold">
-                          {formatCurrency(p.totalAmount)}
+                          {fc(p.totalAmount)}
                         </p>
                       </div>
                       <Badge

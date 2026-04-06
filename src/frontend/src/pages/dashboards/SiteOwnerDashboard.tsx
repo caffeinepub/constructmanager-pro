@@ -16,17 +16,13 @@ import {
   Users,
 } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "../../AuthContext";
 import { useProjectData } from "../../ProjectDataContext";
 import DashboardLayout from "../../components/DashboardLayout";
 import InlineChatPanel from "../../components/InlineChatPanel";
+import { formatCurrencyValue } from "../../utils/currency";
 
-function formatCurrency(n: number) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(n);
-}
+// formatCurrency replaced by formatCurrencyValue from currency utils
 
 function getMaterialStatus(m: { currentStock: number; reorderLevel: number }):
   | "OK"
@@ -39,6 +35,9 @@ function getMaterialStatus(m: { currentStock: number; reorderLevel: number }):
 
 export default function SiteOwnerDashboard() {
   const { data } = useProjectData();
+  const { user } = useAuth();
+  const userCurrency = user?.currency ?? "INR (₹)";
+  const fc = (n: number) => formatCurrencyValue(n, userCurrency);
   const [activeTab, setActiveTab] = useState("overview");
 
   const totalMaterialValue = data.materials.reduce(
@@ -114,9 +113,7 @@ export default function SiteOwnerDashboard() {
                     Materials Value
                   </span>
                 </div>
-                <p className="text-xl font-bold">
-                  {formatCurrency(totalMaterialValue)}
-                </p>
+                <p className="text-xl font-bold">{fc(totalMaterialValue)}</p>
                 {alertCount > 0 && (
                   <p className="text-xs text-orange-500">{alertCount} alerts</p>
                 )}
@@ -128,9 +125,7 @@ export default function SiteOwnerDashboard() {
                   <DollarSign className="w-4 h-4 text-[#8b5cf6]" />
                   <span className="text-xs text-slate-500">Labour Cost</span>
                 </div>
-                <p className="text-xl font-bold">
-                  {formatCurrency(totalLabourCost)}
-                </p>
+                <p className="text-xl font-bold">{fc(totalLabourCost)}</p>
               </CardContent>
             </Card>
           </div>
@@ -143,7 +138,7 @@ export default function SiteOwnerDashboard() {
                     Budget vs Actual
                   </span>
                   <span className="text-sm text-slate-500">
-                    {formatCurrency(budgetUsed)} / {formatCurrency(data.budget)}
+                    {fc(budgetUsed)} / {fc(data.budget)}
                   </span>
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-3">
@@ -157,7 +152,7 @@ export default function SiteOwnerDashboard() {
                     {budgetPct}% used
                   </span>
                   <span className="text-xs text-slate-400">
-                    Remaining: {formatCurrency(data.budget - budgetUsed)}
+                    Remaining: {fc(data.budget - budgetUsed)}
                   </span>
                 </div>
               </CardContent>
@@ -265,9 +260,7 @@ export default function SiteOwnerDashboard() {
             <Card>
               <CardContent className="p-4">
                 <p className="text-xs text-slate-500">Total Inventory Value</p>
-                <p className="text-xl font-bold">
-                  {formatCurrency(totalMaterialValue)}
-                </p>
+                <p className="text-xl font-bold">{fc(totalMaterialValue)}</p>
               </CardContent>
             </Card>
           </div>
@@ -303,7 +296,7 @@ export default function SiteOwnerDashboard() {
                         </TableCell>
                         <TableCell>₹{m.unitPrice}</TableCell>
                         <TableCell className="font-semibold">
-                          {formatCurrency(m.currentStock * m.unitPrice)}
+                          {fc(m.currentStock * m.unitPrice)}
                         </TableCell>
                         <TableCell>
                           <Badge
@@ -344,9 +337,7 @@ export default function SiteOwnerDashboard() {
             <Card>
               <CardContent className="p-4">
                 <p className="text-xs text-slate-500">Total Wages Paid</p>
-                <p className="text-xl font-bold">
-                  {formatCurrency(totalLabourCost)}
-                </p>
+                <p className="text-xl font-bold">{fc(totalLabourCost)}</p>
               </CardContent>
             </Card>
           </div>
@@ -414,26 +405,22 @@ export default function SiteOwnerDashboard() {
               <CardContent className="space-y-3">
                 <div className="flex justify-between py-2 border-b">
                   <span className="text-sm text-slate-500">Labour Cost</span>
-                  <span className="font-semibold">
-                    {formatCurrency(totalLabourCost)}
-                  </span>
+                  <span className="font-semibold">{fc(totalLabourCost)}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b">
                   <span className="text-sm text-slate-500">Materials Cost</span>
                   <span className="font-semibold">
-                    {formatCurrency(totalMaterialValue)}
+                    {fc(totalMaterialValue)}
                   </span>
                 </div>
                 <div className="flex justify-between py-2 font-bold">
                   <span>Total Spent</span>
-                  <span className="text-[#f97316]">
-                    {formatCurrency(budgetUsed)}
-                  </span>
+                  <span className="text-[#f97316]">{fc(budgetUsed)}</span>
                 </div>
                 {data.budget > 0 && (
                   <div className="flex justify-between py-2 text-slate-500">
                     <span>Budget</span>
-                    <span>{formatCurrency(data.budget)}</span>
+                    <span>{fc(data.budget)}</span>
                   </div>
                 )}
               </CardContent>
@@ -465,7 +452,7 @@ export default function SiteOwnerDashboard() {
                       data.payroll.map((p) => (
                         <TableRow key={p.id}>
                           <TableCell>{p.period}</TableCell>
-                          <TableCell>{formatCurrency(p.totalAmount)}</TableCell>
+                          <TableCell>{fc(p.totalAmount)}</TableCell>
                           <TableCell>
                             <Badge
                               className={

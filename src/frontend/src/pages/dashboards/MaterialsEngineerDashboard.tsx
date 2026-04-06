@@ -43,7 +43,11 @@ import DashboardLayout from "../../components/DashboardLayout";
 import InlineChatPanel from "../../components/InlineChatPanel";
 import { MASTER_MATERIALS } from "../../data/masterMaterials";
 import { exportMaterialsCSV } from "../../utils/csvExport";
-import { convertFromUSD } from "../../utils/currency";
+import {
+  convertFromUSD,
+  formatCurrencyValue,
+  getCurrencySymbol,
+} from "../../utils/currency";
 import { exportMaterialsPDF } from "../../utils/pdfExport";
 
 function getMaterialStatus(m: Material): "OK" | "Low" | "Critical" {
@@ -52,13 +56,7 @@ function getMaterialStatus(m: Material): "OK" | "Low" | "Critical" {
   return "OK";
 }
 
-function formatCurrency(n: number) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(n);
-}
+// formatCurrency replaced by formatCurrencyValue from currency utils
 
 interface MaterialModalProps {
   open: boolean;
@@ -155,7 +153,8 @@ function MaterialModal({ open, onClose, initial, onSave }: MaterialModalProps) {
                         ({m.unit})
                       </span>
                       <span className="text-xs text-[#f97316] ml-2 float-right">
-                        ₹{displayPrice}
+                        {getCurrencySymbol(user?.currency ?? "INR (₹)")}
+                        {displayPrice}
                       </span>
                     </button>
                   );
@@ -232,6 +231,8 @@ function MaterialModal({ open, onClose, initial, onSave }: MaterialModalProps) {
 
 export default function MaterialsEngineerDashboard() {
   const { user, activeProject } = useAuth();
+  const userCurrency = user?.currency ?? "INR (₹)";
+  const fc = (n: number) => formatCurrencyValue(n, userCurrency);
   const {
     data,
     addMaterial,
@@ -390,9 +391,7 @@ export default function MaterialsEngineerDashboard() {
                   <TrendingUp className="w-4 h-4 text-[#f97316]" />
                   <span className="text-xs text-slate-500">Total Value</span>
                 </div>
-                <p className="text-xl font-bold">
-                  {formatCurrency(totalValue)}
-                </p>
+                <p className="text-xl font-bold">{fc(totalValue)}</p>
               </CardContent>
             </Card>
             <Card>
@@ -529,7 +528,7 @@ export default function MaterialsEngineerDashboard() {
                           <TableCell>{m.reorderLevel}</TableCell>
                           <TableCell>₹{m.unitPrice}</TableCell>
                           <TableCell>
-                            {formatCurrency(m.currentStock * m.unitPrice)}
+                            {fc(m.currentStock * m.unitPrice)}
                           </TableCell>
                           <TableCell className="text-slate-500">
                             {m.supplier}

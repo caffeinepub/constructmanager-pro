@@ -16,7 +16,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+        sans: ["Figtree", "Plus Jakarta Sans", "Inter", "sans-serif"],
+        display: ["Bricolage Grotesque", "Figtree", "sans-serif"],
       },
       colors: {
         border: "oklch(var(--border))",
@@ -69,19 +70,8 @@ export default {
           border: "oklch(var(--sidebar-border))",
           ring: "oklch(var(--sidebar-ring))",
         },
-        navy: {
-          DEFAULT: "#0B2B45",
-          dark: "#071E30",
-          light: "#0E3459",
-        },
         orange: {
           accent: "#F28C2A",
-        },
-        teal: {
-          accent: "#1FA6A3",
-        },
-        steel: {
-          gray: "#93A4B5",
         },
       },
       borderRadius: {
@@ -92,7 +82,7 @@ export default {
       boxShadow: {
         xs: "0 1px 2px 0 rgba(0,0,0,0.05)",
         card: "0 10px 30px rgba(16,24,40,0.10)",
-        glow: "0 0 40px rgba(242,140,42,0.25)",
+        glow: "0 0 40px rgba(249,115,22,0.25)",
       },
       keyframes: {
         "accordion-down": {

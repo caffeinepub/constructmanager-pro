@@ -14,6 +14,20 @@ export function getCurrencySymbol(currency: string): string {
   return map[currency] || "₹";
 }
 
+/** Map from our currency label strings to ISO 4217 codes for Intl.NumberFormat */
+const CURRENCY_ISO: Record<string, string> = {
+  "USD ($)": "USD",
+  "EUR (€)": "EUR",
+  "GBP (£)": "GBP",
+  "INR (₹)": "INR",
+  "JPY (¥)": "JPY",
+  "AED (د.إ)": "AED",
+  "SGD (S$)": "SGD",
+  "AUD (A$)": "AUD",
+  "CAD (C$)": "CAD",
+  "BRL (R$)": "BRL",
+};
+
 const USD_RATES: Record<string, number> = {
   "USD ($)": 1,
   "EUR (€)": 0.92,
@@ -76,6 +90,27 @@ export function convertFromUSD(usdPrice: number, currency: string): number {
   const rates = liveRates ?? USD_RATES;
   const rate = rates[currency] ?? 83;
   return Math.round(usdPrice * rate * 100) / 100;
+}
+
+/**
+ * Format a monetary value using the user's selected currency string.
+ * The value is treated as already being in the target currency (not USD).
+ * Use convertFromUSD() first if the source is USD.
+ *
+ * @param amount - Numeric amount in the target currency
+ * @param currencyLabel - Currency label from the CURRENCIES list (e.g. "INR (₹)")
+ */
+export function formatCurrencyValue(
+  amount: number,
+  currencyLabel: string,
+): string {
+  const iso = CURRENCY_ISO[currencyLabel] ?? "INR";
+  const locale = iso === "INR" ? "en-IN" : "en-US";
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: iso,
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
 
 export const CURRENCIES = [

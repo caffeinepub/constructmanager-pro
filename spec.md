@@ -2,41 +2,61 @@
 
 ## Current State
 
-Version 18 is deployed with a real Motoko/ICP backend. All major modules are functional: auth, projects, workers, attendance, materials, progress, payroll, chat, notifications, audit log. Data persists in the canister. Known gaps:
+Version 19 is deployed with a full Motoko/ICP backend canister providing persistent storage. The frontend is a React/Tailwind SPA with:
+- Complete authentication (sign-up, login, show/hide password, demo seed via `seedDemo()`)
+- RBAC with 4 roles: Chief Engineer, Site Engineer, Materials Engineer, Site Owner
+- Multi-tenant projects (Team Code + Team Password verified server-side)
+- Labour management: worker CRUD, attendance marking, payroll approval
+- Material management: autocomplete from 40+ master DB items, GRN/issue forms, low-stock alerts
+- Site progress: daily % updates, inline photo attachments
+- Group chat + direct messages (per project)
+- Notifications (in-app bell)
+- PDF + CSV export in all tabs
+- Demo mode (`/demo` page, public sandbox)
+- User Manual page
+- Floating calculator
+- Nationality/currency selector at sign-up with live exchange rates
+- Phone + dial code field on sign-up
 
-- SignUpPage has no phone number field (canister + AuthContext both support it, but the form omits it)
-- Currency conversion in `currency.ts` uses hardcoded static rates (no live API)
-- Passwords are sent and stored as plain text — `pwHash` field is misnamed, no hashing occurs
-- `resetMemberPassword` in AuthContext is a no-op stub (300ms delay, no canister call)
-- Draft-to-live deployment sync: demo seed key is canister-ID-based but the production canister may diverge from draft; seed needs to be more resilient
-- UI polish: dashboards are functional but can be more consistent and visually refined
+Known issues:
+- Draft build not reflecting properly in live deployment (stale canister ID / seed data)
+- Some data may not hydrate correctly after canister redeployment
 
 ## Requested Changes (Diff)
 
 ### Add
-- Phone number field (with country dial code selector) to SignUpPage form
-- Client-side SHA-256 password hashing before any canister call (register, login, changePassword, updateProfile)
-- Live exchange rate fetching via backend HTTP outcall — new canister method `getExchangeRates()` that fetches from exchangerate-api or open.er-api.com and caches result; frontend calls this on login and caches in sessionStorage for the session
-- HTTP outcalls Caffeine component selected for the backend currency fetch
-- `resetMemberPassword` implemented as a real `changePassword` canister call setting a temporary password
+- Ensure all existing features are fully wired, working, and visible end-to-end
+- Improve `ensureDemoSeeded()` to always be idempotent and reliable
+- Improve landing page to show live role-specific dashboard preview after login
+- Audit all 4 role dashboards for completeness and consistency
+- Improve error handling and loading states everywhere
+- Add Gantt chart visualization (simple CSS-based bar chart) to Site Progress tab
+- Improve payroll workflow UI (clearer submission + approval states)
+- Add audit log tab to Chief Engineer dashboard (already backed by canister)
 
 ### Modify
-- `currency.ts`: add `fetchLiveRates()` function that calls canister HTTP outcall and falls back to static rates on failure; `convertFromUSD` reads live rates when available
-- `SignUpPage.tsx`: add phone + dial code fields; pass phone to `register()`
-- `AuthContext.tsx`: hash passwords with SHA-256 (via Web Crypto API) before passing to all canister auth calls; implement `resetMemberPassword` properly
-- `canister.ts`: hash passwords before calls (or do it in AuthContext — single place)
-- `main.mo`: add `getExchangeRates()` HTTP outcall method that fetches USD rates from open.er-api.com and returns a JSON blob; cache result for 1 hour using stable var
-- Demo seed: make seed check more robust — check both localStorage key AND call `seedDemo()` if the canister returns no users on first load
+- Keep exact visual theme: light grey (#f1f5f9) background, orange (#f97316) accents, white cards
+- Improve ProjectsDashboard to better show project cards with progress bar
+- `ensureDemoSeeded` is called on every load (already idempotent in canister)
+- Fix any issues with role routing after login (ensure correct dashboard is navigated to)
+- Expand master materials database to 100+ items
 
 ### Remove
-- Nothing removed
+- Nothing to remove
 
 ## Implementation Plan
 
-1. Select `http-outcalls` component for backend currency fetching
-2. Add `getExchangeRates()` to `main.mo` — HTTP outcall to `https://open.er-api.com/v6/latest/USD`, cache for 1 hour, return rate map as JSON string
-3. Update `currency.ts` — add `fetchLiveRates()` that calls canister and updates a module-level cache; `convertFromUSD` uses live rates when loaded
-4. Add phone field to `SignUpPage.tsx` (dial code select + number input, optional)
-5. Hash passwords with SHA-256 in `AuthContext.tsx` before every canister auth call
-6. Implement `resetMemberPassword` in AuthContext using `canisterChangePassword` with a temp password
-7. Deploy and validate build
+1. Regenerate Motoko backend with expanded master materials and improved audit log support
+2. Rebuild frontend with:
+   - Landing page with inline demo preview after login toggle
+   - Auth pages (login, signup) — already good, minor polish
+   - Projects dashboard — improve cards, progress bars
+   - Chief Engineer dashboard — add Audit Log tab, improve payroll approval UI
+   - Site Engineer dashboard — add simple Gantt chart to progress tab
+   - Materials Engineer dashboard — expand autocomplete to 100+ items
+   - Site Owner dashboard — improve financial overview widgets
+   - All dashboards: ensure CSV + PDF export buttons work
+   - Group chat + DM tabs: verify wiring
+   - Notifications bell: verify wiring
+3. Validate build (typecheck + lint)
+4. Deploy

@@ -3,6 +3,20 @@
 @tailwind utilities;
 
 @font-face {
+  font-family: "Figtree";
+  src: url("/assets/fonts/Figtree.woff2") format("woff2");
+  font-weight: 300 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/assets/fonts/BricolageGrotesque.woff2") format("woff2");
+  font-weight: 200 800;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "Plus Jakarta Sans";
   src: url("/assets/fonts/PlusJakartaSans.woff2") format("woff2");
   font-weight: 300 700;
@@ -13,12 +27,12 @@
   :root {
     --radius: 0.75rem;
 
-    /* Primary: orange #f97316 */
-    --primary: 0.65 0.18 41;
+    /* Primary: orange #f97316 → OKLCH 69 0.19 44 */
+    --primary: 0.69 0.19 44;
     --primary-foreground: 1 0 0;
 
-    /* Page background: light grey #f4f5f7 */
-    --background: 0.97 0.005 0;
+    /* Page background: light grey #f1f5f9 → OKLCH 97.5 0.013 240 */
+    --background: 0.975 0.013 240;
     --foreground: 0.13 0.02 255;
 
     /* Card: white */
@@ -28,41 +42,41 @@
     --popover: 1 0 0;
     --popover-foreground: 0.13 0.02 255;
 
-    /* Secondary: light grey */
-    --secondary: 0.95 0.005 0;
+    /* Secondary: soft grey */
+    --secondary: 0.95 0.008 240;
     --secondary-foreground: 0.27 0.02 255;
 
-    --muted: 0.95 0.005 0;
+    --muted: 0.95 0.008 240;
     --muted-foreground: 0.45 0.02 250;
 
-    /* Accent: steel orange for hover states */
-    --accent: 0.95 0.005 0;
+    /* Accent: light orange hover */
+    --accent: 0.97 0.01 240;
     --accent-foreground: 0.13 0.02 255;
 
     --destructive: 0.577 0.245 27.325;
     --destructive-foreground: 0.985 0 0;
 
-    /* Borders: steel gray #e2e8f0 */
-    --border: 0.92 0.005 0;
-    --input: 0.92 0.005 0;
-    --ring: 0.65 0.18 41;
+    /* Borders */
+    --border: 0.91 0.013 240;
+    --input: 0.91 0.013 240;
+    --ring: 0.69 0.19 44;
 
     /* Chart colors */
-    --chart-1: 0.65 0.18 41;
-    --chart-2: 0.55 0.15 195;
-    --chart-3: 0.6 0.12 155;
+    --chart-1: 0.69 0.19 44;
+    --chart-2: 0.55 0.15 200;
+    --chart-3: 0.6 0.16 155;
     --chart-4: 0.68 0.05 220;
     --chart-5: 0.577 0.245 27.325;
 
     /* Sidebar: white */
     --sidebar: 1 0 0;
     --sidebar-foreground: 0.13 0.02 255;
-    --sidebar-primary: 0.65 0.18 41;
+    --sidebar-primary: 0.69 0.19 44;
     --sidebar-primary-foreground: 1 0 0;
-    --sidebar-accent: 0.97 0.005 0;
+    --sidebar-accent: 0.975 0.013 240;
     --sidebar-accent-foreground: 0.13 0.02 255;
-    --sidebar-border: 0.92 0.005 0;
-    --sidebar-ring: 0.65 0.18 41;
+    --sidebar-border: 0.91 0.013 240;
+    --sidebar-ring: 0.69 0.19 44;
   }
 
   * {
@@ -71,7 +85,17 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: "Plus Jakarta Sans", "Inter", sans-serif;
+    font-family: "Figtree", "Plus Jakarta Sans", "Inter", sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Bricolage Grotesque", "Figtree", "Plus Jakarta Sans",
+      sans-serif;
   }
 
   html {
@@ -81,16 +105,16 @@
 
 @layer utilities {
   .orange-primary {
-    background-color: oklch(0.65 0.18 41);
+    background-color: oklch(0.69 0.19 44);
   }
   .orange-primary-dark {
-    background-color: oklch(0.58 0.18 41);
+    background-color: oklch(0.6 0.19 44);
   }
   .orange-accent {
-    color: oklch(0.65 0.18 41);
+    color: oklch(0.69 0.19 44);
   }
   .steel-bg {
-    background-color: oklch(0.97 0.005 0);
+    background-color: oklch(0.975 0.013 240);
   }
   .hex-pattern {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M30 5 L55 20 L55 50 L30 55 L5 50 L5 20 Z' fill='none' stroke='rgba(0,0,0,0.04)' stroke-width='1'/%3E%3C/svg%3E");
